@@ -1,9 +1,9 @@
 PROGRAM = main
 CC = gcc
 CFLAGS = -Wall -Wextra
-LIBS = -lGL -lglut
+LIBS = -lGL -lGLU -lglut -lm
 
-$(PROGRAM):
+$(PROGRAM): main.c
 	$(CC) $(CFLAGS) $(LIBS) -o $(PROGRAM) $(PROGRAM).c
 
 .PHONY: clean
