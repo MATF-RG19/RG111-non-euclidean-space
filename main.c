@@ -5,6 +5,7 @@
 
 #define PI 3.14159265359
 #define MOUSE_SENSITIVITY 0.2
+#define PLAYER_SPEED 0.1
 
 static int window_width = 960;
 static int window_height = 540;
@@ -28,9 +29,9 @@ static int mouse_y = 0;
 
 static void on_display(void);
 static void on_reshape(int width, int height);
-static void on_keyboard(unsigned char key, int x, int y);
-static void on_mouse_click(int button, int state, int x, int y);
-static void on_mouse_move(int x, int y);
+static void on_keyboard(unsigned char key, int m_x, int m_y);
+static void on_mouse_click(int button, int state, int m_x, int m_y);
+static void on_mouse_move(int m_x, int m_y);
 
 int main(int argc, char** argv) {
   glutInit(&argc, argv);
@@ -69,29 +70,53 @@ void update_camera() {
   look_z = cos(to_radians(pitch))*sin(to_radians(yaw));
 }
 
-static void on_keyboard(unsigned char key, int x, int y) {
-  (void) x;
-  (void) y;
+static void on_keyboard(unsigned char key, int m_x, int m_y) {
+  (void) m_x;
+  (void) m_y;
   switch(key) {
     case 27:
       exit(0);
       break;
+    case 'w':
+    case 'W':
+      x += look_x * PLAYER_SPEED;
+      z += look_z * PLAYER_SPEED;
+      glutPostRedisplay();
+      break;
+    case 's':
+    case 'S':
+      x -= look_x * PLAYER_SPEED;
+      z -= look_z * PLAYER_SPEED;
+      glutPostRedisplay();
+      break;
+    case 'a':
+    case 'A':
+      x += cos(to_radians(yaw)-PI/2) * PLAYER_SPEED;
+      z += sin(to_radians(yaw)-PI/2) * PLAYER_SPEED;
+      glutPostRedisplay();
+      break;
+    case 'd':
+    case 'D':
+      x += cos(to_radians(yaw)+PI/2) * PLAYER_SPEED;
+      z += sin(to_radians(yaw)+PI/2) * PLAYER_SPEED;
+      glutPostRedisplay();
+      break;
   }
 }
 
-static void on_mouse_click(int button, int state, int x, int y) {
+static void on_mouse_click(int button, int state, int m_x, int m_y) {
   (void) button;
   (void) state;
-  (void) x;
-  (void) y;
+  (void) m_x;
+  (void) m_y;
 }
 
-static void on_mouse_move(int x, int y) {
-  int dx = x - mouse_x;
-  int dy = y - mouse_y;
+static void on_mouse_move(int m_x, int m_y) {
+  int dx = m_x - mouse_x;
+  int dy = m_y - mouse_y;
 
-  mouse_x = x;
-  mouse_y = y;
+  mouse_x = m_x;
+  mouse_y = m_y;
 
   // TODO Fix getting stuck when warping the pointer
   // glutWarpPointer(window_width/2, window_height/2);
