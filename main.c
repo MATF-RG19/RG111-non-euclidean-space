@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <math.h>
 #include <GL/glut.h>
+
+#include "input.h"
 
 #define PI 3.14159265359
 #define MOUSE_SENSITIVITY 0.2
@@ -19,19 +22,16 @@ static double z = 0;
 static double yaw = 0;
 static double pitch = 0;
 
+// Look Vector
 static double look_x = 1;
 static double look_y = 0;
 static double look_z = 0;
 
-// Mouse Position
-static int mouse_x = 0;
-static int mouse_y = 0;
-
+// GLUT Event Handlers
 static void on_display(void);
 static void on_reshape(int width, int height);
-static void on_keyboard(unsigned char key, int m_x, int m_y);
 static void on_mouse_click(int button, int state, int m_x, int m_y);
-static void on_mouse_move(int m_x, int m_y);
+static void on_timer(int data);
 
 int main(int argc, char** argv) {
   glutInit(&argc, argv);
@@ -44,6 +44,7 @@ int main(int argc, char** argv) {
   glutDisplayFunc(on_display);
   glutReshapeFunc(on_reshape);
   glutKeyboardFunc(on_keyboard);
+  glutKeyboardUpFunc(on_keyboard_up);
   glutMouseFunc(on_mouse_click);
   glutPassiveMotionFunc(on_mouse_move);
 
@@ -54,6 +55,8 @@ int main(int argc, char** argv) {
   glEnable(GL_DEPTH_TEST);
 
   glClearColor(0, 0, 0, 0);
+
+  glutTimerFunc(20, on_timer, 0);
 
   glutMainLoop();
 
@@ -70,38 +73,45 @@ void update_camera() {
   look_z = cos(to_radians(pitch))*sin(to_radians(yaw));
 }
 
-static void on_keyboard(unsigned char key, int m_x, int m_y) {
-  (void) m_x;
-  (void) m_y;
-  switch(key) {
-    case 27:
-      exit(0);
-      break;
-    case 'w':
-    case 'W':
-      x += look_x * PLAYER_SPEED;
-      z += look_z * PLAYER_SPEED;
-      glutPostRedisplay();
-      break;
-    case 's':
-    case 'S':
-      x -= look_x * PLAYER_SPEED;
-      z -= look_z * PLAYER_SPEED;
-      glutPostRedisplay();
-      break;
-    case 'a':
-    case 'A':
-      x += cos(to_radians(yaw)-PI/2) * PLAYER_SPEED;
-      z += sin(to_radians(yaw)-PI/2) * PLAYER_SPEED;
-      glutPostRedisplay();
-      break;
-    case 'd':
-    case 'D':
-      x += cos(to_radians(yaw)+PI/2) * PLAYER_SPEED;
-      z += sin(to_radians(yaw)+PI/2) * PLAYER_SPEED;
-      glutPostRedisplay();
-      break;
+static void on_timer(int data) {
+  if(data != 0)
+    return;
+
+  yaw += mouse_dx * MOUSE_SENSITIVITY;
+  if(yaw > 180.0)
+    yaw -= 360.0;
+  else if(yaw < -180.0)
+    yaw += 360.0;
+
+  pitch += mouse_dy * MOUSE_SENSITIVITY;
+  if(pitch >= 90.0)
+    pitch = 89.9;
+  else if(pitch <= -90.0)
+    pitch = -89.9;
+
+  update_mouse();
+  update_camera();
+
+  if(is_forward_pressed) {
+    x += look_x * PLAYER_SPEED;
+    z += look_z * PLAYER_SPEED;
   }
+  if(is_backward_pressed) {
+    x -= look_x * PLAYER_SPEED;
+    z -= look_z * PLAYER_SPEED;
+  }
+  if(is_left_pressed) {
+    x += cos(to_radians(yaw)-PI/2) * PLAYER_SPEED;
+    z += sin(to_radians(yaw)-PI/2) * PLAYER_SPEED;
+  }
+  if(is_right_pressed) {
+    x += cos(to_radians(yaw)+PI/2) * PLAYER_SPEED;
+    z += sin(to_radians(yaw)+PI/2) * PLAYER_SPEED;
+  }
+
+  glutPostRedisplay();
+
+  glutTimerFunc(20, on_timer, 0);
 }
 
 static void on_mouse_click(int button, int state, int m_x, int m_y) {
@@ -109,32 +119,6 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
   (void) state;
   (void) m_x;
   (void) m_y;
-}
-
-static void on_mouse_move(int m_x, int m_y) {
-  int dx = m_x - mouse_x;
-  int dy = m_y - mouse_y;
-
-  mouse_x = m_x;
-  mouse_y = m_y;
-
-  // TODO Fix getting stuck when warping the pointer
-  // glutWarpPointer(window_width/2, window_height/2);
-
-  yaw += dx * MOUSE_SENSITIVITY;
-  if(yaw > 180.0)
-    yaw -= 360.0;
-  else if(yaw < -180.0)
-    yaw += 360.0;
-
-  pitch += dy * MOUSE_SENSITIVITY;
-  if(pitch >= 90.0)
-    pitch = 89.9;
-  else if(pitch <= -90.0)
-    pitch = -89.9;
-
-  update_camera();
-  glutPostRedisplay();
 }
 
 static void on_display(void) {
@@ -162,7 +146,7 @@ static void on_reshape(int width, int height) {
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  gluPerspective(60, (GLdouble)width / (GLdouble)height, 0.1 , 100.0);
+  gluPerspective((GLdouble)60, (GLdouble)width / (GLdouble)height, (GLdouble)0.1, (GLdouble)100.0);
 
   glutPostRedisplay();
 }
