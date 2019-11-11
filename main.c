@@ -4,11 +4,9 @@
 #include <math.h>
 #include <GL/glut.h>
 
+#include "constants.h"
+#include "util.h"
 #include "input.h"
-
-#define PI 3.14159265359
-#define MOUSE_SENSITIVITY 0.2
-#define PLAYER_SPEED 0.1
 
 static int window_width = 960;
 static int window_height = 540;
@@ -63,10 +61,6 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-double to_radians(double angle) {
-  return PI/180.0f*angle;
-}
-
 void update_camera() {
   look_x = cos(to_radians(pitch))*cos(to_radians(yaw));
   look_y = -sin(to_radians(pitch));
@@ -77,17 +71,8 @@ static void on_timer(int data) {
   if(data != 0)
     return;
 
-  yaw += mouse_dx * MOUSE_SENSITIVITY;
-  if(yaw > 180.0)
-    yaw -= 360.0;
-  else if(yaw < -180.0)
-    yaw += 360.0;
-
-  pitch += mouse_dy * MOUSE_SENSITIVITY;
-  if(pitch >= 90.0)
-    pitch = 89.9;
-  else if(pitch <= -90.0)
-    pitch = -89.9;
+  yaw = clamp_yaw(yaw + mouse_dx * MOUSE_SENSITIVITY);
+  pitch = clamp_pitch(pitch + mouse_dy * MOUSE_SENSITIVITY);
 
   update_mouse();
   update_camera();
