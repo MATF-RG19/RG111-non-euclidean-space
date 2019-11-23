@@ -51,6 +51,7 @@ int main(int argc, char** argv) {
   // glutWarpPointer(window_width/2, window_height/2);
 
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
 
   glClearColor(0, 0, 0, 0);
 
@@ -106,6 +107,65 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
   (void) m_y;
 }
 
+static void draw_world() {
+  // Draw the inside of the skybox sphere
+  glCullFace(GL_FRONT);
+
+  // Skybox
+  glColor3f(0.2f, 0.8f, 1);
+  glutSolidSphere(50, 10, 10);
+
+  // Draw the front faces of the walls
+  glCullFace(GL_BACK);
+
+  glBegin(GL_QUADS);
+    // Floor
+    glColor3f(0.75f, 0.75f, 0.75f);
+    glNormal3f(0, 1, 0);
+
+    glVertex3f(-8.0f, 0, -8.0f);
+    glVertex3f(-8.0f, 0, 8.0f);
+    glVertex3f(8.0f, 0, 8.0f);
+    glVertex3f(8.0f, 0, -8.0f);
+
+    // Back Wall
+    glColor3f(0.8f, 0.2f, 0.2f);
+    glNormal3f(1, 0, 0);
+
+    glVertex3f(-8.0f, 0, 8.0f);
+    glVertex3f(-8.0f, 0, -8.0f);
+    glVertex3f(-8.0f, 4.0f, -8.0f);
+    glVertex3f(-8.0f, 4.0f, 8.0f);
+
+    // Front Wall
+    glColor3f(0.2f, 0.8f, 0.2f);
+    glNormal3f(-1, 0, 0);
+
+    glVertex3f(8.0f, 0, -8.0f);
+    glVertex3f(8.0f, 0, 8.0f);
+    glVertex3f(8.0f, 4.0f, 8.0f);
+    glVertex3f(8.0f, 4.0f, -8.0f);
+
+    // Right Wall
+    glColor3f(0.2f, 0.2f, 0.8f);
+    glNormal3f(0, 0, -1);
+
+    glVertex3f(8.0f, 0, 8.0f);
+    glVertex3f(-8.0f, 0, 8.0f);
+    glVertex3f(-8.0f, 4.0f, 8.0f);
+    glVertex3f(8.0f, 4.0f, 8.0f);
+
+    // Left Wall
+    glColor3f(0.8f, 0.8f, 0.2f);
+    glNormal3f(0, 0, 1);
+
+    glVertex3f(-8.0f, 0, -8.0f);
+    glVertex3f(8.0f, 0, -8.0f);
+    glVertex3f(8.0f, 4.0f, -8.0f);
+    glVertex3f(-8.0f, 4.0f, -8.0f);
+  glEnd();
+}
+
 static void on_display(void) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -113,12 +173,7 @@ static void on_display(void) {
   glLoadIdentity();
   gluLookAt(x, y, z, x + look_x, y + look_y, z + look_z, 0.0f, 1.0f, 0.0f);
 
-  glBegin(GL_QUADS);
-    glVertex3f(-1.0f, 0, -1.0f);
-    glVertex3f(-1.0f, 0, 1.0f);
-    glVertex3f(1.0f, 0, 1.0f);
-    glVertex3f(1.0f, 0, -1.0f);
-  glEnd();
+  draw_world();
 
   glutSwapBuffers();
 }
