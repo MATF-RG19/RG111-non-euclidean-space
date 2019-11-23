@@ -5,4 +5,7 @@
 #define MOUSE_SENSITIVITY 0.2
 #define PLAYER_SPEED 0.1
 
+extern int window_width;
+extern int window_height;
+
 #endif

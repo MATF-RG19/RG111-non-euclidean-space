@@ -3,8 +3,8 @@ CC = gcc
 CFLAGS = -Wall -Wextra
 LIBS = -lGL -lGLU -lglut -lm
 
-$(PROGRAM): main.o input.o util.o
-	$(CC) $(CFLAGS) $(LIBS) -o $(PROGRAM) main.o input.o util.o
+$(PROGRAM): main.o input.o util.o shared.o
+	$(CC) $(CFLAGS) $(LIBS) -o $(PROGRAM) main.o input.o util.o shared.o
 
 main.o: main.c
 	$(CC) $(CFLAGS) $(LIBS) -c main.c -o main.o
@@ -14,6 +14,9 @@ input.o: input.c
 
 util.o: util.c
 	$(CC) $(CFLAGS) -c util.c -o util.o
+
+shared.o: shared.c
+	$(CC) $(CFLAGS) -c shared.c -o shared.o
 
 .PHONY: clean
 

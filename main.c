@@ -4,12 +4,9 @@
 #include <math.h>
 #include <GL/glut.h>
 
-#include "constants.h"
+#include "shared.h"
 #include "util.h"
 #include "input.h"
-
-static int window_width = 960;
-static int window_height = 540;
 
 // Player Position
 static double x = 0;
@@ -46,9 +43,8 @@ int main(int argc, char** argv) {
   glutMouseFunc(on_mouse_click);
   glutPassiveMotionFunc(on_mouse_move);
 
-  // Leave commented for debugging
-  // glutSetCursor(GLUT_CURSOR_NONE);
-  // glutWarpPointer(window_width/2, window_height/2);
+  glutSetCursor(GLUT_CURSOR_NONE);
+  glutWarpPointer(window_width/2, window_height/2);
 
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);

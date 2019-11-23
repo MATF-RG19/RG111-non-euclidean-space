@@ -1,5 +1,7 @@
 #include <stdlib.h>
+#include <GL/glut.h>
 
+#include "shared.h"
 #include "input.h"
 
 int mouse_x = 0;
@@ -63,11 +65,18 @@ void on_keyboard_up(unsigned char key, int m_x, int m_y) {
 }
 
 void on_mouse_move(int m_x, int m_y) {
-  mouse_dx += m_x - mouse_x;
-  mouse_dy += m_y - mouse_y;
+  static bool warped = false;
+  
+  if(warped) {
+    warped = false;
+    return;
+  }
 
-  // TODO Fix getting stuck when warping the pointer
-  // glutWarpPointer(window_width/2, window_height/2);
+  mouse_dx += m_x - window_width/2;
+  mouse_dy += m_y - window_height/2;
+
+  glutWarpPointer(window_width/2, window_height/2);
+  warped = true;
 }
 
 void update_mouse() {
