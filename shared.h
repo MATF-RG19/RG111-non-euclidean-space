@@ -1,5 +1,5 @@
-#ifndef CONSTANTS_H_
-#define CONSTANTS_H_
+#ifndef SHARED_H_
+#define SHARED_H_
 
 #define PI 3.14159265359
 #define MOUSE_SENSITIVITY 0.2

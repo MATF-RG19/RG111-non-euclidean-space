@@ -1,4 +1,4 @@
-#include "constants.h"
+#include "shared.h"
 
 double to_radians(double angle) {
   return PI/180.0f*angle;

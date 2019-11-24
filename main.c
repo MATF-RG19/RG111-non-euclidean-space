@@ -7,6 +7,7 @@
 #include "shared.h"
 #include "util.h"
 #include "input.h"
+#include "light.h"
 
 // Player Position
 static double x = 0;
@@ -21,6 +22,9 @@ static double pitch = 0;
 static double look_x = 1;
 static double look_y = 0;
 static double look_z = 0;
+
+// Lights
+GLfloat main_light_position[] = { 0, 5, 0, 1 };
 
 // GLUT Event Handlers
 static void on_display(void);
@@ -48,6 +52,7 @@ int main(int argc, char** argv) {
 
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
+  glEnable(GL_LIGHTING);
 
   glClearColor(0, 0, 0, 0);
 
@@ -104,6 +109,8 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
 }
 
 static void draw_world() {
+  glDisable(GL_LIGHTING);
+
   // Draw the inside of the skybox sphere
   glCullFace(GL_FRONT);
 
@@ -111,12 +118,16 @@ static void draw_world() {
   glColor3f(0.2f, 0.8f, 1);
   glutSolidSphere(50, 10, 10);
 
+  glEnable(GL_LIGHTING);
+
   // Draw the front faces of the walls
   glCullFace(GL_BACK);
 
+  init_light(GL_LIGHT0, main_light_position, light_basic);
+
   glBegin(GL_QUADS);
     // Floor
-    glColor3f(0.75f, 0.75f, 0.75f);
+    set_material(material_concrete_white);
     glNormal3f(0, 1, 0);
 
     glVertex3f(-8.0f, 0, -8.0f);
@@ -125,7 +136,7 @@ static void draw_world() {
     glVertex3f(8.0f, 0, -8.0f);
 
     // Back Wall
-    glColor3f(0.8f, 0.2f, 0.2f);
+    set_material(material_concrete_red);
     glNormal3f(1, 0, 0);
 
     glVertex3f(-8.0f, 0, 8.0f);
@@ -134,7 +145,7 @@ static void draw_world() {
     glVertex3f(-8.0f, 4.0f, 8.0f);
 
     // Front Wall
-    glColor3f(0.2f, 0.8f, 0.2f);
+    set_material(material_concrete_green);
     glNormal3f(-1, 0, 0);
 
     glVertex3f(8.0f, 0, -8.0f);
@@ -143,7 +154,7 @@ static void draw_world() {
     glVertex3f(8.0f, 4.0f, -8.0f);
 
     // Right Wall
-    glColor3f(0.2f, 0.2f, 0.8f);
+    set_material(material_concrete_blue);
     glNormal3f(0, 0, -1);
 
     glVertex3f(8.0f, 0, 8.0f);
@@ -152,7 +163,7 @@ static void draw_world() {
     glVertex3f(8.0f, 4.0f, 8.0f);
 
     // Left Wall
-    glColor3f(0.8f, 0.8f, 0.2f);
+    set_material(material_concrete_yellow);
     glNormal3f(0, 0, 1);
 
     glVertex3f(-8.0f, 0, -8.0f);
