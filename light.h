@@ -24,7 +24,7 @@ extern material material_concrete_yellow;
 
 extern light light_basic;
 
-extern void init_lights();
+extern void init_light();
 extern void set_material(material m);
 
 #endif

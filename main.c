@@ -109,6 +109,7 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
 }
 
 static void draw_world() {
+  glEnable(GL_CULL_FACE);
   glDisable(GL_LIGHTING);
 
   // Draw the inside of the skybox sphere
@@ -171,6 +172,12 @@ static void draw_world() {
     glVertex3f(8.0f, 4.0f, -8.0f);
     glVertex3f(-8.0f, 4.0f, -8.0f);
   glEnd();
+
+  glDisable(GL_CULL_FACE);
+
+  glTranslatef(-3, 1, 0);
+  glutSolidTeapot(1);
+  glTranslatef(3, 1, 0);
 }
 
 static void on_display(void) {
