@@ -1,4 +1,5 @@
 #include "shared.h"
+#include "util.h"
 
 double to_radians(double angle) {
   return PI/180.0f*angle;
@@ -18,4 +19,11 @@ double clamp_pitch(double pitch) {
   else if(pitch <= -90.0)
     pitch = -89.9;
   return pitch;
+}
+
+extern void normalize3(GLfloat *vector) {
+  float sum = vector[0] + vector[1] + vector[2];
+  vector[0] = vector[0]/sum;
+  vector[1] = vector[1]/sum;
+  vector[2] = vector[2]/sum;
 }

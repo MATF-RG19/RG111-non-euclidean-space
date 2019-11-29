@@ -22,6 +22,8 @@ extern material material_concrete_red;
 extern material material_concrete_green;
 extern material material_concrete_yellow;
 
+extern material material_portal;
+
 extern light light_basic;
 
 extern void init_light();

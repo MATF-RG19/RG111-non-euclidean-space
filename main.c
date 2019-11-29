@@ -8,6 +8,7 @@
 #include "util.h"
 #include "input.h"
 #include "light.h"
+#include "portal.h"
 
 // Player Position
 static double x = 0;
@@ -32,9 +33,14 @@ static void on_reshape(int width, int height);
 static void on_mouse_click(int button, int state, int m_x, int m_y);
 static void on_timer(int data);
 
+portal portal1 = { { 0, 1, -8 }, { 0, 0, 1 }, 1, 2, NULL };
+portal portal2 = { { 8, 1, 0 }, { -1, 0, 0 }, 1, 2, NULL };
+portal portal3 = { { 0, 1, 8 }, { 0, 0, -1 }, 1, 2, NULL };
+portal portal4 = { { 6, 1, 6 }, { -1, 0, -1 }, 1, 2, NULL };
+
 int main(int argc, char** argv) {
   glutInit(&argc, argv);
-  glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
+  glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_STENCIL | GLUT_DOUBLE);
 
   glutInitWindowSize(window_width, window_height);
   glutInitWindowPosition(300, 300);
@@ -53,6 +59,7 @@ int main(int argc, char** argv) {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glEnable(GL_LIGHTING);
+  glEnable(GL_NORMALIZE);
 
   glClearColor(0, 0, 0, 0);
 
@@ -175,13 +182,19 @@ static void draw_world() {
 
   glDisable(GL_CULL_FACE);
 
-  glTranslatef(-3, 1, 0);
-  glutSolidTeapot(1);
-  glTranslatef(3, 1, 0);
+  glPushMatrix();
+    glTranslatef(-3, 1, 0);
+    glutSolidTeapot(1);
+  glPopMatrix();
+
+  draw_portal_frame(portal1);
+  draw_portal_frame(portal2);
+  draw_portal_frame(portal3);
+  draw_portal_frame(portal4);
 }
 
 static void on_display(void) {
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
