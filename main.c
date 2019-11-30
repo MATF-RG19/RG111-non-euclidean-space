@@ -33,10 +33,12 @@ static void on_reshape(int width, int height);
 static void on_mouse_click(int button, int state, int m_x, int m_y);
 static void on_timer(int data);
 
-portal portal1 = { { 0, 1, -8 }, { 0, 0, 1 }, 1, 2, NULL };
-portal portal2 = { { 8, 1, 0 }, { -1, 0, 0 }, 1, 2, NULL };
-portal portal3 = { { 0, 1, 8 }, { 0, 0, -1 }, 1, 2, NULL };
-portal portal4 = { { 6, 1, 6 }, { -1, 0, -1 }, 1, 2, NULL };
+const portal portal1 = { { 8, 1, 0 }, { -1, 0, 0 }, 1, 2, NULL };
+const portal portal2 = { { 0, 1, -8 }, { 0, 0, 1 }, 1, 2, NULL };
+const portal portal3 = { { 0, 1, 8 }, { 0, 0, -1 }, 1, 2, NULL };
+const portal portal4 = { { 6, 1, 6 }, { -1, 0, -1 }, 1, 2, NULL };
+
+portal portals[] = { portal1, portal2, portal3, portal4 };
 
 int main(int argc, char** argv) {
   glutInit(&argc, argv);
@@ -186,11 +188,61 @@ static void draw_world() {
     glTranslatef(-3, 1, 0);
     glutSolidTeapot(1);
   glPopMatrix();
+}
 
-  draw_portal_frame(portal1);
-  draw_portal_frame(portal2);
-  draw_portal_frame(portal3);
-  draw_portal_frame(portal4);
+void draw_scene() {
+  glClear(GL_DEPTH_BUFFER_BIT);
+
+  // Create a mask for the portal in the stencil buffer
+  // Disable drawing to the color and depth buffer
+  glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+  glDepthMask(GL_FALSE);
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_STENCIL_TEST);
+
+  // Fail the stencil test on every drawn pixel
+  // Increment the stencil buffer value for every failed test
+  glStencilFunc(GL_NEVER, 0, 0xFF);
+  glStencilOp(GL_INCR, GL_KEEP, GL_KEEP);
+  // Alternatively always pass the stencil test and increment on success
+  // glStencilFunc(GL_ALWAYS, 0, 0xFF);
+  // glStencilOp(GL_KEEP, GL_KEEP, GL_INCREMENT);
+
+  // Clearing the stencil buffer depends on the mask value
+  glStencilMask(0xFF);
+  glClear(GL_STENCIL_BUFFER_BIT);
+
+  // Draw the portal frame in the stencil buffer
+  draw_portal_frame(portals[0]);
+
+  // Enable drawing to the color and depth buffers only where the portal was
+  glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+  glDepthMask(GL_TRUE);
+  glEnable(GL_DEPTH_TEST);
+
+  // Disable drawing to the stencil buffer
+  glStencilMask(0x00);
+
+  // Draw where the stencil value is 1
+  glStencilFunc(GL_EQUAL, 1, 0xFF);
+
+  // Render an arbitrary perspective from the portal
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+
+    glLoadIdentity();
+    gluLookAt(0, 1.0f, 0, -1.0f, 1.0f, 0, 0.0f, 1.0f, 0.0f);
+    draw_world();
+
+  glPopMatrix();
+
+  // Draw where the stencil value is 0
+  glStencilFunc(GL_EQUAL, 0, 0xFF);
+
+  // Render the world from the players perspective
+  draw_world();
+
+  glDisable(GL_STENCIL_TEST);
 }
 
 static void on_display(void) {
@@ -200,7 +252,7 @@ static void on_display(void) {
   glLoadIdentity();
   gluLookAt(x, y, z, x + look_x, y + look_y, z + look_z, 0.0f, 1.0f, 0.0f);
 
-  draw_world();
+  draw_scene();
 
   glutSwapBuffers();
 }
