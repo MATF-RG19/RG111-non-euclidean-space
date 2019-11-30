@@ -213,7 +213,7 @@ void draw_scene() {
   glClear(GL_STENCIL_BUFFER_BIT);
 
   // Draw the portal frame in the stencil buffer
-  draw_portal_frame(portals[0]);
+  draw_portal_frame(&portals[0]);
 
   // Enable drawing to the color and depth buffers only where the portal was
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -244,7 +244,7 @@ void draw_scene() {
 	glDepthMask(GL_TRUE);
 	glClear(GL_DEPTH_BUFFER_BIT);
 
-  draw_portal_frame(portals[0]);
+  draw_portal_frame(&portals[0]);
 
   // Render the world from the players perspective
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
