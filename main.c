@@ -236,13 +236,20 @@ void draw_scene() {
 
   glPopMatrix();
 
-  // Draw where the stencil value is 0
-  glStencilFunc(GL_EQUAL, 0, 0xFF);
+  glDisable(GL_STENCIL_TEST);
+
+  // Run a depth test to find objects closer to the camera than the portal
+	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+  draw_portal_frame(portals[0]);
 
   // Render the world from the players perspective
-  draw_world();
+  glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-  glDisable(GL_STENCIL_TEST);
+	draw_world();
 }
 
 static void on_display(void) {
