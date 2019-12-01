@@ -33,12 +33,12 @@ static void on_reshape(int width, int height);
 static void on_mouse_click(int button, int state, int m_x, int m_y);
 static void on_timer(int data);
 
-const portal portal1 = { { 8, 1, 0 }, { -1, 0, 0 }, 1, 2, NULL };
-const portal portal2 = { { 0, 1, -8 }, { 0, 0, 1 }, 1, 2, NULL };
-const portal portal3 = { { 0, 1, 8 }, { 0, 0, -1 }, 1, 2, NULL };
-const portal portal4 = { { 6, 1, 6 }, { -1, 0, -1 }, 1, 2, NULL };
+const portal portal1 = { { 8, 1, 0 }, { -1, 0, 0 }, 5, 4, NULL };
+const portal portal2 = { { 0, 1, -8 }, { 0, 0, 1 }, 5, 4, NULL };
+const portal portal3 = { { 0, 1, 8 }, { 0, 0, -1 }, 5, 4, NULL };
+const portal portal4 = { { 6, 1, 6 }, { -1, 0, -1 }, 5, 4, NULL };
 
-portal portals[] = { portal1, portal2, portal3, portal4 };
+portal portals[] = { portal1, portal2, portal3 };
 
 int main(int argc, char** argv) {
   glutInit(&argc, argv);
@@ -231,7 +231,7 @@ void draw_scene() {
     glPushMatrix();
 
       glLoadIdentity();
-      gluLookAt(0, 1.0f, 0, -1.0f, 1.0f, 0, 0.0f, 1.0f, 0.0f);
+      gluLookAt(7, 1.0f, 0, -1.0f, 1.0f, 0, 0.0f, 1.0f, 0.0f);
       draw_world();
 
     glPopMatrix();
