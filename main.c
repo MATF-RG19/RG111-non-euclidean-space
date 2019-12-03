@@ -33,12 +33,12 @@ static void on_reshape(int width, int height);
 static void on_mouse_click(int button, int state, int m_x, int m_y);
 static void on_timer(int data);
 
-const portal portal1 = { { 8, 1, 0 }, { -1, 0, 0 }, 5, 4, NULL };
-const portal portal2 = { { 0, 1, -8 }, { 0, 0, 1 }, 5, 4, NULL };
-const portal portal3 = { { 0, 1, 8 }, { 0, 0, -1 }, 5, 4, NULL };
-const portal portal4 = { { 6, 1, 6 }, { -1, 0, -1 }, 5, 4, NULL };
+const portal portal1 = { { 8, 1, 0 }, { -1, 0, 0 }, 6, 4, NULL };
+const portal portal2 = { { 0, 1, -8 }, { 0, 0, 1 }, 6, 4, NULL };
+const portal portal3 = { { 0, 1, 8 }, { 0, 0, -1 }, 6, 4, NULL };
+const portal portal4 = { { 6, 1, 6 }, { -1, 0, -1 }, 3, 4, NULL };
 
-portal portals[] = { portal1, portal2, portal3 };
+portal portals[] = { portal1, portal2, portal3, portal4 };
 
 int main(int argc, char** argv) {
   glutInit(&argc, argv);
@@ -226,12 +226,13 @@ void draw_scene() {
     // Draw where the stencil value is 1
     glStencilFunc(GL_EQUAL, 1, 0xFF);
 
-    // Render an arbitrary perspective from the portal
+    // Render a flipped mirror perspective from the portal
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
 
-      glLoadIdentity();
-      gluLookAt(7, 1.0f, 0, -1.0f, 1.0f, 0, 0.0f, 1.0f, 0.0f);
+      glTranslatef(1.99f*portals[i].position[0], 0, 1.99f*portals[i].position[2]);
+      glRotatef(180, 0, 1, 0);
+
       draw_world();
 
     glPopMatrix();
