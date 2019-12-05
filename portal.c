@@ -20,8 +20,12 @@ extern void draw_portal_frame(portal *p) {
   glDisable(GL_CULL_FACE);
 }
 
+extern bool is_linked(portal *p) {
+  return p->link != NULL;
+}
+
 extern bool link_portals(portal *p1, portal *p2) {
-  if(p1 == p2 || p1->link != NULL || p2->link != NULL)
+  if(p1 == p2 || is_linked(p1) || is_linked(p2))
     return false;
   p1->link = p2;
   p2->link = p1;

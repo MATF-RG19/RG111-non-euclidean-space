@@ -15,6 +15,7 @@ typedef struct portal {
 } portal;
 
 extern void draw_portal_frame(portal *p);
+extern bool is_linked(portal *p);
 extern bool link_portals(portal *p1, portal *p2);
 
 #endif

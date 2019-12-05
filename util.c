@@ -7,6 +7,10 @@ double to_radians(double angle) {
   return PI/180.0f*angle;
 }
 
+double to_degrees(double angle) {
+  return angle/PI*180.0f;
+}
+
 double clamp_yaw(double yaw) {
   if(yaw > 180.0)
     yaw -= 360.0;
@@ -23,6 +27,10 @@ double clamp_pitch(double pitch) {
   return pitch;
 }
 
+extern int sgn(float x) {
+  return (x > 0) ? 1 : ((x < 0) ? -1 : 0);
+}
+
 extern float norm2f(float x, float y) {
   return sqrt(x*x + y*y);
 }
@@ -31,9 +39,25 @@ extern float norm3v(float *vector) {
   return sqrt(vector[0]*vector[0] + vector[1]*vector[1] + vector[2]*vector[2]);
 }
 
-extern void normalize3(GLfloat *vector) {
-  float sum = vector[0] + vector[1] + vector[2];
-  vector[0] = vector[0]/sum;
-  vector[1] = vector[1]/sum;
-  vector[2] = vector[2]/sum;
+extern void normalize3v(GLfloat *vector) {
+  float norm = norm3v(vector);
+  vector[0] = vector[0]/norm;
+  vector[1] = vector[1]/norm;
+  vector[2] = vector[2]/norm;
+}
+
+extern float dot_prod2f(float x1, float y1, float x2, float y2) {
+  return x1*x2+y1*y2;
+}
+
+extern float dot_prod3v(float *v1, float *v2) {
+  return v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2];
+}
+
+extern float orientation2f(float x1, float y1, float x2, float y2) {
+  return x1*y2-x2*y1;
+}
+
+extern float orientationy3f(float *v1, float *v2) {
+  return v1[0]*v2[2]-v2[0]*v1[2];
 }
