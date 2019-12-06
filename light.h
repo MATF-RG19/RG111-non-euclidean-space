@@ -27,6 +27,6 @@ extern material material_portal;
 extern light light_basic;
 
 extern void init_light();
-extern void set_material(material m);
+extern void set_material(material *m);
 
 #endif

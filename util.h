@@ -1,7 +1,10 @@
 #ifndef UTIL_H_
 #define UTIL_H_
 
+#include <math.h>
 #include <GL/glut.h>
+
+#include "shared.h"
 
 extern double to_radians(double angle);
 extern double to_degrees(double angle);

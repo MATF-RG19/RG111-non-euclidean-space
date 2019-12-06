@@ -1,6 +1,3 @@
-#include<math.h>
-
-#include "shared.h"
 #include "util.h"
 
 double to_radians(double angle) {

@@ -9,6 +9,7 @@
 #include "input.h"
 #include "light.h"
 #include "portal.h"
+#include "wall.h"
 
 // Player Position
 static double x = 0;
@@ -23,6 +24,13 @@ static double pitch = 0;
 static double look_x = 1;
 static double look_y = 0;
 static double look_z = 0;
+
+wall walls[4];
+
+wall wall_front = { {8, 2, 0}, {-1, 0, 0}, 16, 4, &material_concrete_green };
+wall wall_back = { {-8, 2, 0}, {1, 0, 0}, 16, 4, &material_concrete_red };
+wall wall_left = { {0, 2, -8}, {0, 0, 1}, 16, 4, &material_concrete_yellow };
+wall wall_right = { {0, 2, 8}, {0, 0, -1}, 16, 4, &material_concrete_blue };
 
 // Lights
 GLfloat main_light_position[] = { 0, 5, 0, 1 };
@@ -67,6 +75,12 @@ int main(int argc, char** argv) {
 
   glutTimerFunc(20, on_timer, 0);
 
+  // Initialize walls array
+  walls[0] = wall_front;
+  walls[1] = wall_back;
+  walls[2] = wall_left;
+  walls[3] = wall_right;
+
   // Initialize portals array
   portals[0] = portal1;
   portals[1] = portal2;
@@ -101,6 +115,7 @@ static void on_timer(int data) {
   update_mouse();
   update_camera();
 
+  // TODO: Normalize move vector
   if(is_forward_pressed) {
     x += look_x * PLAYER_SPEED;
     z += look_z * PLAYER_SPEED;
@@ -116,6 +131,28 @@ static void on_timer(int data) {
   if(is_right_pressed) {
     x += cos(to_radians(yaw)+PI/2) * PLAYER_SPEED;
     z += sin(to_radians(yaw)+PI/2) * PLAYER_SPEED;
+  }
+
+  // Check collisions
+  float dist = 0;
+  // Is the player hitting a wall
+  for(unsigned int i = 0; i < sizeof(walls)/sizeof(wall); i++) {
+    if(is_colliding_with_wall(x, z, &walls[i], &dist)) {
+      // And is there not a portal there
+      // TODO attach portals to walls so we don't have to check collisions with all of them
+      bool in_portal = false;
+      for(unsigned int j = 0; j < sizeof(portals)/sizeof(portal); j++) {
+        if(is_colliding_with_portal(x, y, z, &portals[j])) {
+          in_portal = true;
+          break;
+        }
+      }
+      if(!in_portal) {
+        // Move the player back
+        x = x + (PLAYER_RADIUS-dist)*walls[i].normal[0];
+        z = z + (PLAYER_RADIUS-dist)*walls[i].normal[2];
+      }
+    }
   }
 
   glutPostRedisplay();
@@ -146,58 +183,28 @@ static void draw_world() {
   // Draw the front faces of the walls
   glCullFace(GL_BACK);
 
-  init_light(GL_LIGHT0, main_light_position, light_basic);
+  init_light(GL_LIGHT0, main_light_position, &light_basic);
 
+  // Draw the walls
+  for(unsigned int i = 0; i < sizeof(walls)/sizeof(wall); i++) {
+    draw_wall(&walls[i]);
+  }
+
+  // Draw the floor
   glBegin(GL_QUADS);
-    // Floor
-    set_material(material_concrete_white);
+    set_material(&material_concrete_white);
     glNormal3f(0, 1, 0);
 
     glVertex3f(-8.0f, 0, -8.0f);
     glVertex3f(-8.0f, 0, 8.0f);
     glVertex3f(8.0f, 0, 8.0f);
     glVertex3f(8.0f, 0, -8.0f);
-
-    // Back Wall
-    set_material(material_concrete_red);
-    glNormal3f(1, 0, 0);
-
-    glVertex3f(-8.0f, 0, 8.0f);
-    glVertex3f(-8.0f, 0, -8.0f);
-    glVertex3f(-8.0f, 4.0f, -8.0f);
-    glVertex3f(-8.0f, 4.0f, 8.0f);
-
-    // Front Wall
-    set_material(material_concrete_green);
-    glNormal3f(-1, 0, 0);
-
-    glVertex3f(8.0f, 0, -8.0f);
-    glVertex3f(8.0f, 0, 8.0f);
-    glVertex3f(8.0f, 4.0f, 8.0f);
-    glVertex3f(8.0f, 4.0f, -8.0f);
-
-    // Right Wall
-    set_material(material_concrete_blue);
-    glNormal3f(0, 0, -1);
-
-    glVertex3f(8.0f, 0, 8.0f);
-    glVertex3f(-8.0f, 0, 8.0f);
-    glVertex3f(-8.0f, 4.0f, 8.0f);
-    glVertex3f(8.0f, 4.0f, 8.0f);
-
-    // Left Wall
-    set_material(material_concrete_yellow);
-    glNormal3f(0, 0, 1);
-
-    glVertex3f(-8.0f, 0, -8.0f);
-    glVertex3f(8.0f, 0, -8.0f);
-    glVertex3f(8.0f, 4.0f, -8.0f);
-    glVertex3f(-8.0f, 4.0f, -8.0f);
   glEnd();
 
   glDisable(GL_CULL_FACE);
 
   glPushMatrix();
+    set_material(&material_concrete_yellow);
     glTranslatef(-3, 1, 0);
     glutSolidTeapot(1);
   glPopMatrix();

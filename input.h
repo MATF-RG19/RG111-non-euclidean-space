@@ -1,7 +1,11 @@
 #ifndef INPUT_H_
 #define INPUT_H_
 
+#include <stdlib.h>
 #include <stdbool.h>
+#include <GL/glut.h>
+
+#include "shared.h"
 
 // Mouse Position
 extern int mouse_x;

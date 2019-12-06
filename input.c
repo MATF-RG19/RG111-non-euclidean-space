@@ -1,7 +1,3 @@
-#include <stdlib.h>
-#include <GL/glut.h>
-
-#include "shared.h"
 #include "input.h"
 
 int mouse_x = 0;
@@ -66,7 +62,7 @@ void on_keyboard_up(unsigned char key, int m_x, int m_y) {
 
 void on_mouse_move(int m_x, int m_y) {
   static bool warped = false;
-  
+
   if(warped) {
     warped = false;
     return;
