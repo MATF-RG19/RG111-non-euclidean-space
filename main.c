@@ -211,10 +211,13 @@ static void draw_world() {
 }
 
 void draw_scene() {
+  portal p;
   for(unsigned int i = 0; i < sizeof(portals)/sizeof(portal); i++) {
+    p = portals[i];
+
     // If the portal is linked draw the link's view
     // Otherwise only draw the frame
-    if(is_linked(&portals[i])) {
+    if(is_linked(&p)) {
       glEnable(GL_STENCIL_TEST);
 
       // Create a mask for the portal in the stencil buffer
@@ -236,7 +239,7 @@ void draw_scene() {
       glClear(GL_STENCIL_BUFFER_BIT);
 
       // Draw the portal frame in the stencil buffer
-      draw_portal_frame(&portals[i]);
+      draw_portal_frame(&p);
 
       // Enable drawing to the color and depth buffers only where the portal was
       glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -253,27 +256,37 @@ void draw_scene() {
       glMatrixMode(GL_MODELVIEW);
       glPushMatrix();
 
+        // Add a clipping plane so we don't render objects behind the destination portal
+        double clip_plane[] = {
+          -p.normal[0], -p.normal[1], -p.normal[2],
+          p.normal[0]*p.position[0]*0.99f + p.normal[1]*p.position[1]*0.99f + p.normal[2]*p.position[2]*0.99f
+        };
+        glClipPlane(GL_CLIP_PLANE0, clip_plane);
+        glEnable(GL_CLIP_PLANE0);
+
         // Make sure normal vectors are normalized
-        float angle = to_degrees(acos(dot_prod3v(portals[i].normal, portals[i].link->normal)));
-        // float angle = to_degrees(acos(dot_prod3v(portals[i].normal, portals[i].link->normal)/norm3v(portals[i].link->normal)/norm3v(portals[i].normal)));
-        int orientation = sgn(orientationy3f(portals[i].normal, portals[i].link->normal));
+        float angle = to_degrees(acos(dot_prod3v(p.normal, p.link->normal)));
+        // float angle = to_degrees(acos(dot_prod3v(p.normal, p.link->normal)/norm3v(p.link->normal)/norm3v(p.normal)));
+        int orientation = sgn(orientationy3f(p.normal, p.link->normal));
 
         // Flip the camera
         glRotatef(180, 0, 1, 0);
         // Find the transformation between the portals
         // We multiply by 0.99 so it doesn't look disconnected
         // because the portal is offset from the wall a few pixels
-        glTranslatef(-0.99f*portals[i].position[0], portals[i].position[1], -0.99f*portals[i].position[2]);
+        glTranslatef(-0.99f*p.position[0], p.position[1], -0.99f*p.position[2]);
         glRotatef(orientation==0 ? angle : orientation*angle, 0, 1, 0);
-        glTranslatef(-0.99f*portals[i].link->position[0], -portals[i].link->position[1], -0.99f*portals[i].link->position[2]);
+        glTranslatef(-0.99f*p.link->position[0], -p.link->position[1], -0.99f*p.link->position[2]);
 
         draw_world();
+
+        glDisable(GL_CLIP_PLANE0);
 
       glPopMatrix();
 
       glDisable(GL_STENCIL_TEST);
     } else {
-      draw_portal_frame(&portals[i]);
+      draw_portal_frame(&p);
     }
   }
 
