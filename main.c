@@ -142,7 +142,7 @@ static void on_timer(int data) {
       // TODO attach portals to walls so we don't have to check collisions with all of them
       bool in_portal = false;
       for(unsigned int j = 0; j < sizeof(portals)/sizeof(portal); j++) {
-        if(is_colliding_with_portal(x, y, z, &portals[j])) {
+        if(is_linked(&portals[j]) && is_colliding_with_portal(x, y, z, &portals[j])) {
           in_portal = true;
           break;
         }
