@@ -16,6 +16,9 @@ static double x = 0;
 static double y = 1.0f;
 static double z = 0;
 
+static double new_x = 0;
+static double new_z = 0;
+
 // Camera Rotation
 static double yaw = 0;
 static double pitch = 0;
@@ -113,25 +116,71 @@ static void on_timer(int data) {
   pitch = clamp_pitch(pitch + mouse_dy * MOUSE_SENSITIVITY);
 
   update_mouse();
-  update_camera();
+
+  new_x = x;
+  new_z = z;
 
   // TODO: Normalize move vector
   if(is_forward_pressed) {
-    x += look_x * PLAYER_SPEED;
-    z += look_z * PLAYER_SPEED;
+    new_x += look_x * PLAYER_SPEED;
+    new_z += look_z * PLAYER_SPEED;
   }
   if(is_backward_pressed) {
-    x -= look_x * PLAYER_SPEED;
-    z -= look_z * PLAYER_SPEED;
+    new_x -= look_x * PLAYER_SPEED;
+    new_z -= look_z * PLAYER_SPEED;
   }
   if(is_left_pressed) {
-    x += cos(to_radians(yaw)-PI/2) * PLAYER_SPEED;
-    z += sin(to_radians(yaw)-PI/2) * PLAYER_SPEED;
+    new_x += cos(to_radians(yaw)-PI/2) * PLAYER_SPEED;
+    new_z += sin(to_radians(yaw)-PI/2) * PLAYER_SPEED;
   }
   if(is_right_pressed) {
-    x += cos(to_radians(yaw)+PI/2) * PLAYER_SPEED;
-    z += sin(to_radians(yaw)+PI/2) * PLAYER_SPEED;
+    new_x += cos(to_radians(yaw)+PI/2) * PLAYER_SPEED;
+    new_z += sin(to_radians(yaw)+PI/2) * PLAYER_SPEED;
   }
+
+  // Check if the player should be teleported
+  for(unsigned int i = 0; i < sizeof(portals)/sizeof(portal); i++) {
+    // If the portal is linked and we passed the portal plane
+    if(is_linked(&portals[i]) && sidexz2v(portals[i].position, portals[i].normal, x, z)*sidexz2v(portals[i].position, portals[i].normal, new_x, new_z) <= 0) {
+
+      float d = det(new_x-x, new_z-z, -portals[i].normal[2]*portals[i].width/2, portals[i].normal[0]*portals[i].width/2);
+
+      // Calculate the intersection parameter on the portal
+      float s = det(portals[i].position[0]-x, portals[i].position[2]-z, new_x-x, new_z-z)/d;
+
+      // Check if the player went through the portal
+      if(fabs(s) >= 1)
+        continue;
+
+      // Calculate the intersection parameter on the player move vector
+      float t = det(portals[i].position[0]-x, portals[i].position[2]-z, -portals[i].normal[2]*portals[i].width/2, portals[i].normal[0]*portals[i].width/2)/d;
+
+      // Calculate the yaw change
+      float angle = to_degrees(acos(dot_prod2f(-portals[i].normal[0], -portals[i].normal[2], portals[i].link->normal[0], portals[i].link->normal[2])));
+      int orientation = sgn(orientation2f(-portals[i].normal[0], -portals[i].normal[2], portals[i].link->normal[0], portals[i].link->normal[2]));
+      angle = orientation==0 ? angle : orientation*angle;
+
+      // Move the player
+      float offset_x = (new_x-x)*(1-t);
+      float offset_z = (new_z-z)*(1-t);
+
+      new_x = portals[i].link->position[0] + portals[i].link->normal[2]*portals[i].link->width/2*s;
+      new_z = portals[i].link->position[2] - portals[i].link->normal[0]*portals[i].link->width/2*s;
+
+      new_x += cos(angle)*offset_x - sin(angle)*offset_z;
+      new_z += sin(angle)*offset_x + cos(angle)*offset_z;
+
+      // Update player rotation
+      yaw = clamp_yaw(yaw + angle);
+
+      break;
+    }
+  }
+
+  x = new_x;
+  z = new_z;
+
+  update_camera();
 
   // Check collisions
   float dist = 0;
