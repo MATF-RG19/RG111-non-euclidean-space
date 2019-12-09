@@ -18,9 +18,11 @@ extern void normalize3v(GLfloat *vector);
 extern float dot_prod2f(float x1, float y1, float x2, float y2);
 extern float dot_prod3v(float *v1, float *v2);
 extern float orientation2f(float x1, float y1, float x2, float y2);
-extern float orientationy3f(float *v1, float *v2);
+extern float orientationy3v(float *v1, float *v2);
 extern int side2f(float lx, float ly, float nx, float ny, float x, float y);
-extern int sidexz2v(float *position, float *normal, float x, float z);
-extern float det(float x1, float y1, float x2, float y2);
+extern int sidexz3v(float *position, float *normal, float x, float z);
+extern float det2f(float x1, float y1, float x2, float y2);
+extern float angle_between2f(float x1, float y1, float x2, float y2);
+extern float angle_betweenxz3v(float *v1, float *v2);
 
 #endif
