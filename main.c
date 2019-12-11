@@ -257,50 +257,37 @@ static void draw_world() {
   glPopMatrix();
 }
 
-void draw_scene() {
+void draw_scene(int level) {
   portal p;
   for(unsigned int i = 0; i < sizeof(portals)/sizeof(portal); i++) {
     p = portals[i];
 
+    // Create a mask for the portal in the stencil buffer
+    glEnable(GL_STENCIL_TEST);
+
+    // Disable drawing to the color and depth buffer
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    glDepthMask(GL_FALSE);
+    glDisable(GL_DEPTH_TEST);
+
+    // Fail the stencil test on every pixel drawn inside the current level
+    // Increment the stencil buffer value for every failed test
+    glStencilFunc(GL_NOTEQUAL, level, 0xFF);
+    glStencilOp(GL_INCR, GL_KEEP, GL_KEEP);
+    glStencilMask(0xFF);
+
+    // Draw the portal frame in the stencil buffer
+    draw_portal_frame(&p);
+
+    // Enable drawing to the color and depth buffers only where the portal was
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glDepthMask(GL_TRUE);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+
     // If the portal is linked draw the link's view
     // Otherwise only draw the frame
     if(is_linked(&p)) {
-      glEnable(GL_STENCIL_TEST);
-
-      // Create a mask for the portal in the stencil buffer
-      // Disable drawing to the color and depth buffer
-      glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-      glDepthMask(GL_FALSE);
-      glDisable(GL_DEPTH_TEST);
-
-      // Fail the stencil test on every drawn pixel
-      // Increment the stencil buffer value for every failed test
-      glStencilFunc(GL_NEVER, 0, 0xFF);
-      glStencilOp(GL_INCR, GL_KEEP, GL_KEEP);
-      // Alternatively always pass the stencil test and increment on success
-      // glStencilFunc(GL_ALWAYS, 0, 0xFF);
-      // glStencilOp(GL_KEEP, GL_KEEP, GL_INCREMENT);
-
-      // Clearing the stencil buffer depends on the mask value
-      glStencilMask(0xFF);
-      glClear(GL_STENCIL_BUFFER_BIT);
-
-      // Draw the portal frame in the stencil buffer
-      draw_portal_frame(&p);
-
-      // Enable drawing to the color and depth buffers only where the portal was
-      glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-      glDepthMask(GL_TRUE);
-      glEnable(GL_DEPTH_TEST);
-
-      // Disable drawing to the stencil buffer
-      glStencilMask(0x00);
-
-      // Draw where the stencil value is 1
-      glStencilFunc(GL_EQUAL, 1, 0xFF);
-
-      // Render a flipped mirror perspective from the portal
-      glMatrixMode(GL_MODELVIEW);
       glPushMatrix();
 
         // Add a clipping plane so we don't render objects behind the destination portal
@@ -320,32 +307,69 @@ void draw_scene() {
         glRotatef(angle_betweenxz3v(p.normal, p.link->normal), 0, 1, 0);
         glTranslatef(-0.99f*p.link->position[0], -p.link->position[1], -0.99f*p.link->position[2]);
 
-        draw_world();
+        if(level == MAX_RECURSION_LEVEL) {
+          // Disable drawing to the stencil buffer
+          glStencilMask(0x00);
+
+          // Draw where the stencil value is equal to the current level + 1
+          glStencilFunc(GL_EQUAL, level + 1, 0xFF);
+
+          draw_world();
+        } else {
+          // Draw the view recursively from the current portal
+          draw_scene(level + 1);
+        }
 
         glDisable(GL_CLIP_PLANE0);
 
       glPopMatrix();
-
-      glDisable(GL_STENCIL_TEST);
     } else {
       draw_portal_frame(&p);
     }
+
+    // Revert the stencil buffer values
+
+    // Create a mask for the portal in the stencil buffer
+    glEnable(GL_STENCIL_TEST);
+
+    // Disable drawing to the color and depth buffer
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    glDepthMask(GL_FALSE);
+    glDisable(GL_DEPTH_TEST);
+
+    // Fail the stencil test on every pixel drawn inside the current level
+    // Decrement the stencil buffer value for every failed test
+    glStencilFunc(GL_NOTEQUAL, level+1, 0xFF);
+    glStencilOp(GL_DECR, GL_KEEP, GL_KEEP);
+    glStencilMask(0xFF);
+
+    // Draw the portal frame in the stencil buffer
+    draw_portal_frame(&p);
+
+    glDisable(GL_STENCIL_TEST);
   }
 
   // Run a depth test to find objects closer to the camera than the portals
-	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-	glEnable(GL_DEPTH_TEST);
-	glDepthMask(GL_TRUE);
-	glClear(GL_DEPTH_BUFFER_BIT);
+  glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+  glEnable(GL_DEPTH_TEST);
+  glDepthMask(GL_TRUE);
+  glClear(GL_DEPTH_BUFFER_BIT);
 
   for(unsigned int i = 0; i < sizeof(portals)/sizeof(portal); i++) {
     draw_portal_frame(&portals[i]);
   }
 
+  // Only draw at the current level
+  glEnable(GL_STENCIL_TEST);
+  glStencilMask(0x00);
+  glStencilFunc(GL_LEQUAL, level, 0xFF);
+
   // Render the world from the players perspective
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-	draw_world();
+  draw_world();
+
+  glDisable(GL_STENCIL_TEST);
 }
 
 static void on_display(void) {
@@ -355,7 +379,7 @@ static void on_display(void) {
   glLoadIdentity();
   gluLookAt(x, y, z, x + look_x, y + look_y, z + look_z, 0.0f, 1.0f, 0.0f);
 
-  draw_scene();
+  draw_scene(0);
 
   glutSwapBuffers();
 }

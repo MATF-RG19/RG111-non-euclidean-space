@@ -6,7 +6,7 @@ LIBS = -lGL -lGLU -lglut -lm
 $(PROGRAM): main.o shared.o input.o util.o light.o portal.o wall.o
 	$(CC) $(CFLAGS) $(LIBS) -o $(PROGRAM) main.o shared.o input.o util.o light.o portal.o wall.o
 
-main.o: main.c
+main.o: main.c shared.h util.h input.h light.h portal.h wall.h
 	$(CC) $(CFLAGS) $(LIBS) -c main.c -o main.o
 
 shared.o: shared.c shared.h
