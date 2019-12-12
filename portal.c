@@ -50,3 +50,11 @@ extern bool is_colliding_with_portal(float x, float y, float z, portal *p) {
     norm2f(intersect_x-p->position[0], intersect_z-p->position[2]) < p->width/2 - PLAYER_RADIUS &&
     p->position[1]-p->height/2 <= y-PLAYER_HEIGHT/2 && p->position[1]+p->height/2 >= y+PLAYER_HEIGHT/2;
 }
+
+extern float* get_offset_position(portal* p) {
+  float *pos = calloc(3, sizeof(float));
+  pos[0] = p->position[0]+0.1f*p->normal[0];
+  pos[1] = p->position[1];
+  pos[2] = p->position[2]+0.1f*p->normal[2];
+  return pos;
+}

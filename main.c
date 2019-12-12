@@ -141,29 +141,32 @@ static void on_timer(int data) {
   // Check if the player should be teleported
   for(unsigned int i = 0; i < sizeof(portals)/sizeof(portal); i++) {
     // If the portal is linked and we passed the portal plane
-    if(is_linked(&portals[i]) && sidexz3v(portals[i].position, portals[i].normal, x, z)*sidexz3v(portals[i].position, portals[i].normal, new_x, new_z) <= 0) {
+    float *offset_pos = get_offset_position(&portals[i]);
+    if(is_linked(&portals[i]) && sidexz3v(offset_pos, portals[i].normal, x, z)*sidexz3v(offset_pos, portals[i].normal, new_x, new_z) <= 0) {
 
       float d = det2f(new_x-x, new_z-z, -portals[i].normal[2]*portals[i].width/2, portals[i].normal[0]*portals[i].width/2);
 
       // Calculate the intersection parameter on the portal
-      float s = det2f(portals[i].position[0]-x, portals[i].position[2]-z, new_x-x, new_z-z)/d;
+      float s = det2f(offset_pos[0]-x, offset_pos[2]-z, new_x-x, new_z-z)/d;
 
       // Check if the player went through the portal, otherwise continue
-      if(fabs(s) >= 1)
+      if(fabs(s) >= 1) {
+        free(offset_pos);
         continue;
+      }
 
       // Calculate the intersection parameter on the player move vector
-      float t = det2f(portals[i].position[0]-x, portals[i].position[2]-z, -portals[i].normal[2]*portals[i].width/2, portals[i].normal[0]*portals[i].width/2)/d;
+      float t = det2f(offset_pos[0]-x, offset_pos[2]-z, -portals[i].normal[2]*portals[i].width/2, portals[i].normal[0]*portals[i].width/2)/d;
 
       // Calculate the yaw change
       float angle = angle_between2f(-portals[i].normal[0], -portals[i].normal[2], portals[i].link->normal[0], portals[i].link->normal[2]);
 
       // Move the player
-      float offset_x = (new_x-x)*(1-t);
-      float offset_z = (new_z-z)*(1-t);
+      float offset_x = (new_x-x)*(1.0f-t);
+      float offset_z = (new_z-z)*(1.0f-t);
 
-      new_x = portals[i].link->position[0] + portals[i].link->normal[2]*portals[i].link->width/2*s;
-      new_z = portals[i].link->position[2] - portals[i].link->normal[0]*portals[i].link->width/2*s;
+      new_x = portals[i].link->position[0] + portals[i].link->normal[0]*0.1f + portals[i].link->normal[2]*portals[i].link->width/2*s;
+      new_z = portals[i].link->position[2] + portals[i].link->normal[2]*0.1f - portals[i].link->normal[0]*portals[i].link->width/2*s;
 
       new_x += cos(angle)*offset_x - sin(angle)*offset_z;
       new_z += sin(angle)*offset_x + cos(angle)*offset_z;
@@ -171,8 +174,11 @@ static void on_timer(int data) {
       // Update player rotation
       yaw = clamp_yaw(yaw + angle);
 
+      free(offset_pos);
       break;
     }
+
+    free(offset_pos);
   }
 
   x = new_x;
@@ -303,9 +309,9 @@ void draw_scene(int level) {
         // Find the transformation between the portals
         // We multiply by 0.99 so it doesn't look disconnected
         // because the portal is offset from the wall a few pixels
-        glTranslatef(-p.position[0]-0.01f*p.normal[0], p.position[1], -p.position[2]-0.01f*p.normal[2]);
+        glTranslatef(-p.position[0]-0.005f*p.normal[0], p.position[1], -p.position[2]-0.005f*p.normal[2]);
         glRotatef(angle_betweenxz3v(p.normal, p.link->normal), 0, 1, 0);
-        glTranslatef(-p.link->position[0]-0.01f*p.link->normal[0], -p.link->position[1], -p.link->position[2]-p.link->normal[2]);
+        glTranslatef(-p.link->position[0]-0.005f*p.link->normal[0], -p.link->position[1], -p.link->position[2]-0.005f*p.link->normal[2]);
 
         if(level == MAX_RECURSION_LEVEL) {
           // Disable drawing to the stencil buffer
