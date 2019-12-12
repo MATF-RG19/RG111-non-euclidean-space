@@ -293,7 +293,7 @@ void draw_scene(int level) {
         // Add a clipping plane so we don't render objects behind the destination portal
         double clip_plane[] = {
           -p.normal[0], -p.normal[1], -p.normal[2],
-          p.normal[0]*p.position[0]*0.99f + p.normal[1]*p.position[1]*0.99f + p.normal[2]*p.position[2]*0.99f
+          p.normal[0]*p.position[0] + p.normal[1]*p.position[1] + p.normal[2]*p.position[2]
         };
         glClipPlane(GL_CLIP_PLANE0, clip_plane);
         glEnable(GL_CLIP_PLANE0);
@@ -303,9 +303,9 @@ void draw_scene(int level) {
         // Find the transformation between the portals
         // We multiply by 0.99 so it doesn't look disconnected
         // because the portal is offset from the wall a few pixels
-        glTranslatef(-0.99f*p.position[0], p.position[1], -0.99f*p.position[2]);
+        glTranslatef(-p.position[0]-0.01f*p.normal[0], p.position[1], -p.position[2]-0.01f*p.normal[2]);
         glRotatef(angle_betweenxz3v(p.normal, p.link->normal), 0, 1, 0);
-        glTranslatef(-0.99f*p.link->position[0], -p.link->position[1], -0.99f*p.link->position[2]);
+        glTranslatef(-p.link->position[0]-0.01f*p.link->normal[0], -p.link->position[1], -p.link->position[2]-p.link->normal[2]);
 
         if(level == MAX_RECURSION_LEVEL) {
           // Disable drawing to the stencil buffer
