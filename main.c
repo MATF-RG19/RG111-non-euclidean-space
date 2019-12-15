@@ -103,12 +103,13 @@ int main(int argc, char** argv) {
   unsigned int p1 = create_portal(8, 1.5f, 0, &wall_front, 6, 3);
   unsigned int p2 = create_portal(0, 1.5f, -8, &wall_left, 6, 3);
   unsigned int p3 = create_portal(0, 1.5f, 8, &wall_right, 6, 3);
+  // unsigned int p4 = create_portal(8, 1.5f, 6, &wall_front, 2, 3);
 
   // Link portals to show each other's view
   // (void)link_portals(portals[p1], portals[p4]);
-  // (void)link_portals(portals[p2], portals[p3]);
+  (void)link_portals(portals[p2], portals[p3]);
 
-  (void)link_portals(portals[p1], portals[p2]);
+  // (void)link_portals(portals[p1], portals[p2]);
 
   glutMainLoop();
 
@@ -353,7 +354,10 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
     float dist_h = sqrt((x+look_x*nt-walls[i].position[0])*(x+look_x*nt-walls[i].position[0])+(z+look_z*nt-walls[i].position[2])*(z+look_z*nt-walls[i].position[2]));
     float dist_v = y+look_y*nt-walls[i].position[1];
 
-    if(fabs(dist_h)>walls[i].width/2-PORTAL_WIDTH/2 || fabs(dist_v)>walls[i].height/2-PORTAL_HEIGHT/2)
+    if(y+look_y*nt > 3)
+      continue;
+
+    if(fabs(dist_h)>walls[i].width/2-PORTAL_WIDTH/2 || fabs(dist_v)>walls[i].height/2)
       continue;
 
     // If the current wall is closer use it instead
@@ -367,12 +371,14 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
   if(t == INT_MAX)
     return;
 
+  float ny = y+look_y*t < PORTAL_HEIGHT/2 ? PORTAL_HEIGHT/2 : y+look_y*t;
+
   // Create the portal on the closest wall
   // printf("%f - %f %f %f\n", t, x+look_x*t, y+look_y*t, z+look_z*t);
   if(button == 0)
-    create_user_portal(BLUE, x+look_x*t, y+look_y*t, z+look_z*t, w);
+    create_user_portal(BLUE, x+look_x*t, ny, z+look_z*t, w);
   else if(button == 2)
-    create_user_portal(ORANGE, x+look_x*t, y+look_y*t, z+look_z*t, w);
+    create_user_portal(ORANGE, x+look_x*t, ny, z+look_z*t, w);
 }
 
 static void draw_world() {
@@ -488,6 +494,12 @@ void draw_scene(int level) {
 
       glPopMatrix();
     } else {
+      // Disable drawing to the stencil buffer
+      glStencilMask(0x00);
+
+      // Draw where the stencil value is equal to the current level + 1
+      glStencilFunc(GL_EQUAL, level + 1, 0xFF);
+
       draw_portal_frame(&p);
     }
 

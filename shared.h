@@ -10,8 +10,8 @@
 #define PLAYER_HEIGHT 1.5f
 #define PLAYER_SPEED 0.1
 
-#define PORTAL_WIDTH 2
-#define PORTAL_HEIGHT 3
+#define PORTAL_WIDTH 2.0f
+#define PORTAL_HEIGHT 3.0f
 
 typedef enum portal_color {
   BLUE = 0,
