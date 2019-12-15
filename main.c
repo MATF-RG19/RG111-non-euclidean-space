@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include <limits.h>
 #include <GL/glut.h>
 
 #include "shared.h"
@@ -28,28 +29,38 @@ static double look_x = 1;
 static double look_y = 0;
 static double look_z = 0;
 
-wall walls[4];
+// Wall data
+static wall walls[4];
 
-wall wall_front = { {8, 2, 0}, {-1, 0, 0}, 16, 4, &material_concrete_green };
-wall wall_back = { {-8, 2, 0}, {1, 0, 0}, 16, 4, &material_concrete_red };
-wall wall_left = { {0, 2, -8}, {0, 0, 1}, 16, 4, &material_concrete_yellow };
-wall wall_right = { {0, 2, 8}, {0, 0, -1}, 16, 4, &material_concrete_blue };
+static wall wall_front = { {8, 2, 0}, {-1, 0, 0}, 16, 4, &material_concrete_green };
+static wall wall_back = { {-8, 2, 0}, {1, 0, 0}, 16, 4, &material_concrete_red };
+static wall wall_left = { {0, 2, -8}, {0, 0, 1}, 16, 4, &material_concrete_yellow };
+static wall wall_right = { {0, 2, 8}, {0, 0, -1}, 16, 4, &material_concrete_blue };
+
+// Portal data
+// First 2 ids are reserved for the user portals
+static unsigned int portal_count = 2;
+static unsigned int portal_allocated = 0;
+static unsigned int portal_allocation_size = 5;
+static portal **portals;
 
 // Lights
-GLfloat main_light_position[] = { 0, 5, 0, 1 };
+static GLfloat main_light_position[] = { 0, 5, 0, 1 };
 
 // GLUT Event Handlers
 static void on_display(void);
 static void on_reshape(int width, int height);
 static void on_mouse_click(int button, int state, int m_x, int m_y);
 static void on_timer(int data);
+static void on_close(void);
 
-portal portals[4];
-
-portal portal1 = { { 8, 1, 0 }, { -1, 0, 0 }, 6, 4, NULL };
-portal portal2 = { { 0, 1, -8 }, { 0, 0, 1 }, 6, 4, NULL };
-portal portal3 = { { 0, 1, 8 }, { 0, 0, -1 }, 6, 4, NULL };
-portal portal4 = { { 6, 1, 6 }, { -1, 0, -1 }, 3, 4, NULL };
+// Game Logic
+static void initialize_portals(unsigned int n);
+static void realloc_portals(unsigned int step);
+static unsigned int create_user_portal(portal_color c, float x, float y, float z, wall* wall);
+static unsigned int create_portal(float x, float y, float z, wall* wall, float width, float height);
+static void free_user_portal(portal_color c);
+static void free_portals();
 
 int main(int argc, char** argv) {
   glutInit(&argc, argv);
@@ -65,6 +76,9 @@ int main(int argc, char** argv) {
   glutKeyboardUpFunc(on_keyboard_up);
   glutMouseFunc(on_mouse_click);
   glutPassiveMotionFunc(on_mouse_move);
+  // For some reason I get an implicit declaration warning for this
+  // Even though it works and is in the API
+  glutCloseFunc(on_close);
 
   glutSetCursor(GLUT_CURSOR_NONE);
   glutWarpPointer(window_width/2, window_height/2);
@@ -85,24 +99,23 @@ int main(int argc, char** argv) {
   walls[3] = wall_right;
 
   // Initialize portals array
-  portals[0] = portal1;
-  portals[1] = portal2;
-  portals[2] = portal3;
-  portals[3] = portal4;
-  normalize3v(portals[3].normal);
+  initialize_portals(portal_allocation_size);
+  unsigned int p1 = create_portal(8, 1.5f, 0, &wall_front, 6, 3);
+  unsigned int p2 = create_portal(0, 1.5f, -8, &wall_left, 6, 3);
+  unsigned int p3 = create_portal(0, 1.5f, 8, &wall_right, 6, 3);
 
   // Link portals to show each other's view
-  (void)link_portals(&portals[0], &portals[3]);
-  (void)link_portals(&portals[1], &portals[2]);
+  // (void)link_portals(portals[p1], portals[p4]);
+  // (void)link_portals(portals[p2], portals[p3]);
 
-  // (void)link_portals(&portals[0], &portals[1]);
+  (void)link_portals(portals[p1], portals[p2]);
 
   glutMainLoop();
 
   return 0;
 }
 
-void update_camera() {
+static void update_camera() {
   look_x = cos(to_radians(pitch))*cos(to_radians(yaw));
   look_y = -sin(to_radians(pitch));
   look_z = cos(to_radians(pitch))*sin(to_radians(yaw));
@@ -139,12 +152,15 @@ static void on_timer(int data) {
   }
 
   // Check if the player should be teleported
-  for(unsigned int i = 0; i < sizeof(portals)/sizeof(portal); i++) {
-    // If the portal is linked and we passed the portal plane
-    float *offset_pos = get_offset_position(&portals[i]);
-    if(is_linked(&portals[i]) && sidexz3v(offset_pos, portals[i].normal, x, z)*sidexz3v(offset_pos, portals[i].normal, new_x, new_z) <= 0) {
+  for(unsigned int i = 0; i < portal_count; i++) {
+    if(portals[i] == NULL)
+      continue;
 
-      float d = det2f(new_x-x, new_z-z, -portals[i].normal[2]*portals[i].width/2, portals[i].normal[0]*portals[i].width/2);
+    // If the portal is linked and we passed the portal plane
+    float *offset_pos = get_offset_position(portals[i]);
+    if(is_linked(portals[i]) && sidexz3v(offset_pos, portals[i]->normal, x, z)*sidexz3v(offset_pos, portals[i]->normal, new_x, new_z) <= 0) {
+
+      float d = det2f(new_x-x, new_z-z, -portals[i]->normal[2]*portals[i]->width/2, portals[i]->normal[0]*portals[i]->width/2);
 
       // Calculate the intersection parameter on the portal
       float s = det2f(offset_pos[0]-x, offset_pos[2]-z, new_x-x, new_z-z)/d;
@@ -156,17 +172,17 @@ static void on_timer(int data) {
       }
 
       // Calculate the intersection parameter on the player move vector
-      float t = det2f(offset_pos[0]-x, offset_pos[2]-z, -portals[i].normal[2]*portals[i].width/2, portals[i].normal[0]*portals[i].width/2)/d;
+      float t = det2f(offset_pos[0]-x, offset_pos[2]-z, -portals[i]->normal[2]*portals[i]->width/2, portals[i]->normal[0]*portals[i]->width/2)/d;
 
       // Calculate the yaw change
-      float angle = angle_between2f(-portals[i].normal[0], -portals[i].normal[2], portals[i].link->normal[0], portals[i].link->normal[2]);
+      float angle = angle_between2f(-portals[i]->normal[0], -portals[i]->normal[2], portals[i]->link->normal[0], portals[i]->link->normal[2]);
 
       // Move the player
       float offset_x = (new_x-x)*(1.0f-t);
       float offset_z = (new_z-z)*(1.0f-t);
 
-      new_x = portals[i].link->position[0] + portals[i].link->normal[0]*0.1f + portals[i].link->normal[2]*portals[i].link->width/2*s;
-      new_z = portals[i].link->position[2] + portals[i].link->normal[2]*0.1f - portals[i].link->normal[0]*portals[i].link->width/2*s;
+      new_x = portals[i]->link->position[0] + portals[i]->link->normal[0]*0.1f + portals[i]->link->normal[2]*portals[i]->link->width/2*s;
+      new_z = portals[i]->link->position[2] + portals[i]->link->normal[2]*0.1f - portals[i]->link->normal[0]*portals[i]->link->width/2*s;
 
       new_x += cos(angle)*offset_x - sin(angle)*offset_z;
       new_z += sin(angle)*offset_x + cos(angle)*offset_z;
@@ -194,8 +210,11 @@ static void on_timer(int data) {
       // And is there not a portal there
       // TODO attach portals to walls so we don't have to check collisions with all of them
       bool in_portal = false;
-      for(unsigned int j = 0; j < sizeof(portals)/sizeof(portal); j++) {
-        if(is_linked(&portals[j]) && is_colliding_with_portal(x, y, z, &portals[j])) {
+      for(unsigned int j = 0; j < portal_count; j++) {
+        if(portals[j] == NULL)
+          continue;
+
+        if(is_linked(portals[j]) && is_colliding_with_portal(x, y, z, portals[j])) {
           in_portal = true;
           break;
         }
@@ -213,11 +232,147 @@ static void on_timer(int data) {
   glutTimerFunc(20, on_timer, 0);
 }
 
+static void initialize_portals(unsigned int n) {
+  portals = calloc(n, sizeof(portal *));
+  if(portals == NULL) {
+    fprintf(stderr, "Error Allocating Memory");
+    exit(EXIT_FAILURE);
+  }
+  portal_allocated = n;
+  for(unsigned int i = 0; i < n; i++) {
+    portals[i] = NULL;
+  }
+}
+
+static void realloc_portals(unsigned int step) {
+  portals = realloc(portals, (portal_allocated+step)*sizeof(portal *));
+  if(portals == NULL) {
+    fprintf(stderr, "Error Allocating Memory");
+    exit(EXIT_FAILURE);
+  }
+  for(unsigned int i = portal_allocated; i < portal_allocated+step; i++) {
+    portals[i] = NULL;
+  }
+  portal_allocated += step;
+}
+
+static unsigned int create_user_portal(portal_color c, float x, float y, float z, wall* wall) {
+  if(portals[c]!=NULL)
+    free_user_portal(c);
+
+  portal *p = malloc(sizeof(portal));
+  p->position[0] = x;
+  p->position[1] = y;
+  p->position[2] = z;
+  p->normal[0] = wall->normal[0];
+  p->normal[1] = wall->normal[1];
+  p->normal[2] = wall->normal[2];
+  p->width = PORTAL_WIDTH;
+  p->height = PORTAL_HEIGHT;
+  p->link = NULL;
+  portals[c] = p;
+
+  (void) link_portals(portals[BLUE], portals[ORANGE]);
+  return c;
+}
+
+static unsigned int create_portal(float x, float y, float z, wall* wall, float width, float height) {
+  portal *p = malloc(sizeof(portal));
+  p->position[0] = x;
+  p->position[1] = y;
+  p->position[2] = z;
+  p->normal[0] = wall->normal[0];
+  p->normal[1] = wall->normal[1];
+  p->normal[2] = wall->normal[2];
+  p->width = width;
+  p->height = height;
+  p->link = NULL;
+
+  if(portal_allocated == portal_count) {
+    realloc_portals(portal_allocation_size);
+  }
+
+  portals[portal_count] = p;
+  return portal_count++;
+}
+
+static void free_user_portal(portal_color c) {
+  if(portals[c]==NULL)
+    return;
+
+  (void) unlink_portal(portals[c]);
+
+  free(portals[c]);
+  portals[c] = NULL;
+}
+
+static void free_portals() {
+  for(unsigned int i = 0; i < portal_count; i++) {
+    if(portals[i] == NULL)
+      continue;
+
+    (void) unlink_portal(portals[i]);
+
+    free(portals[i]);
+  }
+}
+
 static void on_mouse_click(int button, int state, int m_x, int m_y) {
-  (void) button;
-  (void) state;
   (void) m_x;
   (void) m_y;
+
+  // Buttons are reported from X display server, not sure if they are standard
+  // 0 - LMB
+  // 2 - RMB
+  if(button!=0 && button!=2)
+    return;
+
+  // 0 - On mouse down
+  // 1 - On mouse up
+  if(state==0)
+    return;
+
+  // Find the closest wall the player is looking at
+  float t = INT_MAX;
+  wall *w = NULL;
+  for(unsigned int i = 0; i < sizeof(walls)/sizeof(wall); i++) {
+    // If the look vector is parallel to the wall there is no intersection
+    float d = dot_prod3f(look_x, look_y, look_z, walls[i].normal[0], walls[i].normal[1], walls[i].normal[2]);
+    if(d == 0)
+      continue;
+
+    // Calculate the intersection parameter
+    float nt = -(dot_prod3f(x, y, z, walls[i].normal[0], walls[i].normal[1], walls[i].normal[2])+(-walls[i].normal[0]*walls[i].position[0]-walls[i].normal[1]*walls[i].position[1]-walls[i].normal[2]*walls[i].position[2]))/
+    dot_prod3f(look_x, look_y, look_z, walls[i].normal[0], walls[i].normal[1], walls[i].normal[2]);
+
+    // We don't care about walls behind the player
+    if(nt<=0)
+      continue;
+
+      // Check if the intersection is inside the wall and there is enough space to make a portal there
+    float dist_h = sqrt((x+look_x*nt-walls[i].position[0])*(x+look_x*nt-walls[i].position[0])+(z+look_z*nt-walls[i].position[2])*(z+look_z*nt-walls[i].position[2]));
+    float dist_v = y+look_y*nt-walls[i].position[1];
+
+    if(fabs(dist_h)>walls[i].width/2-PORTAL_WIDTH/2 || fabs(dist_v)>walls[i].height/2-PORTAL_HEIGHT/2)
+      continue;
+
+    // If the current wall is closer use it instead
+    if(nt < t) {
+      t = nt;
+      w = &walls[i];
+    }
+  }
+
+  // Check if there was an intersection point
+  if(t == INT_MAX)
+    return;
+
+  // Create the portal on the closest wall
+  // printf("%f - %f %f %f\n", t, x+look_x*t, y+look_y*t, z+look_z*t);
+  if(button == 0)
+    create_user_portal(BLUE, x+look_x*t, y+look_y*t, z+look_z*t, w);
+  else if(button == 2)
+    create_user_portal(ORANGE, x+look_x*t, y+look_y*t, z+look_z*t, w);
 }
 
 static void draw_world() {
@@ -265,8 +420,11 @@ static void draw_world() {
 
 void draw_scene(int level) {
   portal p;
-  for(unsigned int i = 0; i < sizeof(portals)/sizeof(portal); i++) {
-    p = portals[i];
+  for(unsigned int i = 0; i < portal_count; i++) {
+    if(portals[i] == NULL)
+      continue;
+
+    p = *portals[i];
 
     // Create a mask for the portal in the stencil buffer
     glEnable(GL_STENCIL_TEST);
@@ -361,8 +519,11 @@ void draw_scene(int level) {
   glDepthMask(GL_TRUE);
   glClear(GL_DEPTH_BUFFER_BIT);
 
-  for(unsigned int i = 0; i < sizeof(portals)/sizeof(portal); i++) {
-    draw_portal_frame(&portals[i]);
+  for(unsigned int i = 0; i < portal_count; i++) {
+    if(portals[i] == NULL)
+      continue;
+
+    draw_portal_frame(portals[i]);
   }
 
   // Only draw at the current level
@@ -401,4 +562,8 @@ static void on_reshape(int width, int height) {
   gluPerspective((GLdouble)60, (GLdouble)width / (GLdouble)height, (GLdouble)0.1, (GLdouble)100.0);
 
   glutPostRedisplay();
+}
+
+static void on_close(void) {
+  free_portals();
 }

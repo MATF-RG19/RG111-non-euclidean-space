@@ -16,6 +16,7 @@ extern float norm2f(float x, float y);
 extern float norm3v(float *vector);
 extern void normalize3v(GLfloat *vector);
 extern float dot_prod2f(float x1, float y1, float x2, float y2);
+extern float dot_prod3f(float x1, float y1, float z1, float x2, float y2, float z2);
 extern float dot_prod3v(float *v1, float *v2);
 extern float orientation2f(float x1, float y1, float x2, float y2);
 extern float orientationy3v(float *v1, float *v2);

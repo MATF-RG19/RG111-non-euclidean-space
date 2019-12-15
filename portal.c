@@ -25,11 +25,20 @@ extern bool is_linked(portal *p) {
 }
 
 extern bool link_portals(portal *p1, portal *p2) {
-  if(p1 == p2 || is_linked(p1) || is_linked(p2))
+  if(p1 == NULL || p2 == NULL || p1 == p2 || is_linked(p1) || is_linked(p2))
     return false;
   p1->link = p2;
   p2->link = p1;
   return true;
+}
+
+extern bool unlink_portal(portal *p) {
+  if(p!=NULL && is_linked(p)) {
+    p->link->link = NULL;
+    p->link = NULL;
+    return true;
+  }
+  return false;
 }
 
 extern float distance_from_portal(float x, float z, portal *p, float *intersect_x, float *intersect_z) {

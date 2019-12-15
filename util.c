@@ -47,6 +47,10 @@ extern float dot_prod2f(float x1, float y1, float x2, float y2) {
   return x1*x2+y1*y2;
 }
 
+extern float dot_prod3f(float x1, float y1, float z1, float x2, float y2, float z2) {
+  return x1*x2+y1*y2+z1*z2;
+}
+
 extern float dot_prod3v(float *v1, float *v2) {
   return v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2];
 }
