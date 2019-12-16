@@ -11,6 +11,7 @@
 #include "light.h"
 #include "portal.h"
 #include "wall.h"
+#include "logic.h"
 
 // Player Position
 static double x = 0;
@@ -29,21 +30,6 @@ static double look_x = 1;
 static double look_y = 0;
 static double look_z = 0;
 
-// Wall data
-static wall walls[4];
-
-static wall wall_front = { {8, 2, 0}, {-1, 0, 0}, 16, 4, &material_concrete_green };
-static wall wall_back = { {-8, 2, 0}, {1, 0, 0}, 16, 4, &material_concrete_red };
-static wall wall_left = { {0, 2, -8}, {0, 0, 1}, 16, 4, &material_concrete_yellow };
-static wall wall_right = { {0, 2, 8}, {0, 0, -1}, 16, 4, &material_concrete_blue };
-
-// Portal data
-// First 2 ids are reserved for the user portals
-static unsigned int portal_count = 2;
-static unsigned int portal_allocated = 0;
-static unsigned int portal_allocation_size = 5;
-static portal **portals;
-
 // Lights
 static GLfloat main_light_position[] = { 0, 5, 0, 1 };
 
@@ -53,14 +39,6 @@ static void on_reshape(int width, int height);
 static void on_mouse_click(int button, int state, int m_x, int m_y);
 static void on_timer(int data);
 static void on_close(void);
-
-// Game Logic
-static void initialize_portals(unsigned int n);
-static void realloc_portals(unsigned int step);
-static unsigned int create_user_portal(portal_color c, float x, float y, float z, wall* wall);
-static unsigned int create_portal(float x, float y, float z, wall* wall, float width, float height);
-static void free_user_portal(portal_color c);
-static void free_portals();
 
 int main(int argc, char** argv) {
   glutInit(&argc, argv);
@@ -93,16 +71,17 @@ int main(int argc, char** argv) {
   glutTimerFunc(20, on_timer, 0);
 
   // Initialize walls array
-  walls[0] = wall_front;
-  walls[1] = wall_back;
-  walls[2] = wall_left;
-  walls[3] = wall_right;
+  initialize_walls(wall_allocation_size);
+  unsigned int wall_front = create_wall(8, 2, 0, -1, 0, 0, 16, 4, &material_concrete_green);
+  unsigned int wall_back = create_wall(-8, 2, 0, 1, 0, 0, 16, 4, &material_concrete_red);
+  unsigned int wall_left = create_wall(0, 2, -8, 0, 0, 1, 16, 4, &material_concrete_yellow);
+  unsigned int wall_right = create_wall(0, 2, 8, 0, 0, -1, 16, 4, &material_concrete_blue);
 
   // Initialize portals array
   initialize_portals(portal_allocation_size);
-  unsigned int p1 = create_portal(8, 1.5f, 0, &wall_front, 6, 3);
-  unsigned int p2 = create_portal(0, 1.5f, -8, &wall_left, 6, 3);
-  unsigned int p3 = create_portal(0, 1.5f, 8, &wall_right, 6, 3);
+  unsigned int p1 = create_portal(8, 1.5f, 0, walls[wall_front], 6, 3);
+  unsigned int p2 = create_portal(0, 1.5f, -8, walls[wall_left], 6, 3);
+  unsigned int p3 = create_portal(0, 1.5f, 8, walls[wall_right], 6, 3);
   // unsigned int p4 = create_portal(8, 1.5f, 6, &wall_front, 2, 3);
 
   // Link portals to show each other's view
@@ -206,8 +185,8 @@ static void on_timer(int data) {
   // Check collisions
   float dist = 0;
   // Is the player hitting a wall
-  for(unsigned int i = 0; i < sizeof(walls)/sizeof(wall); i++) {
-    if(is_colliding_with_wall(x, z, &walls[i], &dist)) {
+  for(unsigned int i = 0; i < wall_count; i++) {
+    if(is_colliding_with_wall(x, z, walls[i], &dist)) {
       // And is there not a portal there
       // TODO attach portals to walls so we don't have to check collisions with all of them
       bool in_portal = false;
@@ -222,8 +201,8 @@ static void on_timer(int data) {
       }
       if(!in_portal) {
         // Move the player back
-        x = x + (PLAYER_RADIUS-dist)*walls[i].normal[0];
-        z = z + (PLAYER_RADIUS-dist)*walls[i].normal[2];
+        x = x + (PLAYER_RADIUS-dist)*walls[i]->normal[0];
+        z = z + (PLAYER_RADIUS-dist)*walls[i]->normal[2];
       }
     }
   }
@@ -231,91 +210,6 @@ static void on_timer(int data) {
   glutPostRedisplay();
 
   glutTimerFunc(20, on_timer, 0);
-}
-
-static void initialize_portals(unsigned int n) {
-  portals = calloc(n, sizeof(portal *));
-  if(portals == NULL) {
-    fprintf(stderr, "Error Allocating Memory");
-    exit(EXIT_FAILURE);
-  }
-  portal_allocated = n;
-  for(unsigned int i = 0; i < n; i++) {
-    portals[i] = NULL;
-  }
-}
-
-static void realloc_portals(unsigned int step) {
-  portals = realloc(portals, (portal_allocated+step)*sizeof(portal *));
-  if(portals == NULL) {
-    fprintf(stderr, "Error Allocating Memory");
-    exit(EXIT_FAILURE);
-  }
-  for(unsigned int i = portal_allocated; i < portal_allocated+step; i++) {
-    portals[i] = NULL;
-  }
-  portal_allocated += step;
-}
-
-static unsigned int create_user_portal(portal_color c, float x, float y, float z, wall* wall) {
-  if(portals[c]!=NULL)
-    free_user_portal(c);
-
-  portal *p = malloc(sizeof(portal));
-  p->position[0] = x;
-  p->position[1] = y;
-  p->position[2] = z;
-  p->normal[0] = wall->normal[0];
-  p->normal[1] = wall->normal[1];
-  p->normal[2] = wall->normal[2];
-  p->width = PORTAL_WIDTH;
-  p->height = PORTAL_HEIGHT;
-  p->link = NULL;
-  portals[c] = p;
-
-  (void) link_portals(portals[BLUE], portals[ORANGE]);
-  return c;
-}
-
-static unsigned int create_portal(float x, float y, float z, wall* wall, float width, float height) {
-  portal *p = malloc(sizeof(portal));
-  p->position[0] = x;
-  p->position[1] = y;
-  p->position[2] = z;
-  p->normal[0] = wall->normal[0];
-  p->normal[1] = wall->normal[1];
-  p->normal[2] = wall->normal[2];
-  p->width = width;
-  p->height = height;
-  p->link = NULL;
-
-  if(portal_allocated == portal_count) {
-    realloc_portals(portal_allocation_size);
-  }
-
-  portals[portal_count] = p;
-  return portal_count++;
-}
-
-static void free_user_portal(portal_color c) {
-  if(portals[c]==NULL)
-    return;
-
-  (void) unlink_portal(portals[c]);
-
-  free(portals[c]);
-  portals[c] = NULL;
-}
-
-static void free_portals() {
-  for(unsigned int i = 0; i < portal_count; i++) {
-    if(portals[i] == NULL)
-      continue;
-
-    (void) unlink_portal(portals[i]);
-
-    free(portals[i]);
-  }
 }
 
 static void on_mouse_click(int button, int state, int m_x, int m_y) {
@@ -336,34 +230,34 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
   // Find the closest wall the player is looking at
   float t = INT_MAX;
   wall *w = NULL;
-  for(unsigned int i = 0; i < sizeof(walls)/sizeof(wall); i++) {
+  for(unsigned int i = 0; i < wall_count; i++) {
     // If the look vector is parallel to the wall there is no intersection
-    float d = dot_prod3f(look_x, look_y, look_z, walls[i].normal[0], walls[i].normal[1], walls[i].normal[2]);
+    float d = dot_prod3f(look_x, look_y, look_z, walls[i]->normal[0], walls[i]->normal[1], walls[i]->normal[2]);
     if(d == 0)
       continue;
 
     // Calculate the intersection parameter
-    float nt = -(dot_prod3f(x, y, z, walls[i].normal[0], walls[i].normal[1], walls[i].normal[2])+(-walls[i].normal[0]*walls[i].position[0]-walls[i].normal[1]*walls[i].position[1]-walls[i].normal[2]*walls[i].position[2]))/
-    dot_prod3f(look_x, look_y, look_z, walls[i].normal[0], walls[i].normal[1], walls[i].normal[2]);
+    float nt = -(dot_prod3f(x, y, z, walls[i]->normal[0], walls[i]->normal[1], walls[i]->normal[2])+(-walls[i]->normal[0]*walls[i]->position[0]-walls[i]->normal[1]*walls[i]->position[1]-walls[i]->normal[2]*walls[i]->position[2]))/
+    dot_prod3f(look_x, look_y, look_z, walls[i]->normal[0], walls[i]->normal[1], walls[i]->normal[2]);
 
     // We don't care about walls behind the player
     if(nt<=0)
       continue;
 
       // Check if the intersection is inside the wall and there is enough space to make a portal there
-    float dist_h = sqrt((x+look_x*nt-walls[i].position[0])*(x+look_x*nt-walls[i].position[0])+(z+look_z*nt-walls[i].position[2])*(z+look_z*nt-walls[i].position[2]));
-    float dist_v = y+look_y*nt-walls[i].position[1];
+    float dist_h = sqrt((x+look_x*nt-walls[i]->position[0])*(x+look_x*nt-walls[i]->position[0])+(z+look_z*nt-walls[i]->position[2])*(z+look_z*nt-walls[i]->position[2]));
+    float dist_v = y+look_y*nt-walls[i]->position[1];
 
     if(y+look_y*nt > 3)
       continue;
 
-    if(fabs(dist_h)>walls[i].width/2-PORTAL_WIDTH/2 || fabs(dist_v)>walls[i].height/2)
+    if(fabs(dist_h)>walls[i]->width/2-PORTAL_WIDTH/2 || fabs(dist_v)>walls[i]->height/2)
       continue;
 
     // If the current wall is closer use it instead
     if(nt < t) {
       t = nt;
-      w = &walls[i];
+      w = walls[i];
     }
   }
 
@@ -400,8 +294,8 @@ static void draw_world() {
   init_light(GL_LIGHT0, main_light_position, &light_basic);
 
   // Draw the walls
-  for(unsigned int i = 0; i < sizeof(walls)/sizeof(wall); i++) {
-    draw_wall(&walls[i]);
+  for(unsigned int i = 0; i < wall_count; i++) {
+    draw_wall(walls[i]);
   }
 
   // Draw the floor
@@ -578,4 +472,5 @@ static void on_reshape(int width, int height) {
 
 static void on_close(void) {
   free_portals();
+  free_walls();
 }
