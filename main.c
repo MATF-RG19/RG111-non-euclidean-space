@@ -191,7 +191,7 @@ static void on_timer(int data) {
       // TODO attach portals to walls so we don't have to check collisions with all of them
       bool in_portal = false;
       for(unsigned int j = 0; j < portal_count; j++) {
-        if(portals[j] == NULL)
+        if(portals[j] == NULL || portals[j]->wall != walls[i])
           continue;
 
         if(is_linked(portals[j]) && is_colliding_with_portal(x, y, z, portals[j])) {
@@ -226,6 +226,12 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
   // 1 - On mouse up
   if(state==0)
     return;
+
+  // Free the previous portal
+  if(button == 0)
+    free_user_portal(BLUE);
+  else if(button == 2)
+    free_user_portal(ORANGE);
 
   // Find the closest wall the player is looking at
   float t = INT_MAX;
@@ -266,6 +272,13 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
     return;
 
   float ny = y+look_y*t < PORTAL_HEIGHT/2 ? PORTAL_HEIGHT/2 : y+look_y*t;
+
+  // Check if there is another portal at that position
+  for(unsigned int i = 0; i < portal_count; i++) {
+    if(portals[i] != NULL && portals[i]->wall == w && sqrt(fabs(x+look_x*t-portals[i]->position[0])*fabs(x+look_x*t-portals[i]->position[0])+fabs(z+look_z*t-portals[i]->position[2])*fabs(z+look_z*t-portals[i]->position[2]))<portals[i]->width/2+PORTAL_WIDTH/2) {
+      return;
+    }
+  }
 
   // Create the portal on the closest wall
   // printf("%f - %f %f %f\n", t, x+look_x*t, y+look_y*t, z+look_z*t);

@@ -8,12 +8,14 @@
 #include "shared.h"
 #include "light.h"
 #include "util.h"
+#include "wall.h"
 
 typedef struct portal {
   GLfloat position[3];
   GLfloat normal[3];
   GLfloat width;
   GLfloat height;
+  wall *wall;
   struct portal *link;
 } portal;
 

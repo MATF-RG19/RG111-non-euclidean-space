@@ -105,6 +105,7 @@ unsigned int create_user_portal(portal_color c, float x, float y, float z, wall*
   p->normal[2] = wall->normal[2];
   p->width = PORTAL_WIDTH;
   p->height = PORTAL_HEIGHT;
+  p->wall = wall;
   p->link = NULL;
   portals[c] = p;
 
@@ -122,6 +123,7 @@ unsigned int create_portal(float x, float y, float z, wall* wall, float width, f
   p->normal[2] = wall->normal[2];
   p->width = width;
   p->height = height;
+  p->wall = wall;
   p->link = NULL;
 
   if(portal_allocated == portal_count) {
