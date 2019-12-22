@@ -12,6 +12,7 @@
 #include "portal.h"
 #include "wall.h"
 #include "logic.h"
+#include "bitmaps.h"
 
 // Player Position
 static double x = 0;
@@ -65,6 +66,8 @@ int main(int argc, char** argv) {
   glEnable(GL_CULL_FACE);
   glEnable(GL_LIGHTING);
   glEnable(GL_NORMALIZE);
+
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
   glClearColor(0, 0, 0, 0);
 
@@ -474,6 +477,43 @@ void draw_scene(int level) {
   glDisable(GL_STENCIL_TEST);
 }
 
+static void draw_hud() {
+  glDisable(GL_LIGHTING);
+
+  glMatrixMode(GL_PROJECTION);
+  glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0, window_width, 0, window_height);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    	glLoadIdentity();
+
+      glColor3f(0.8f, 0.8f, 0.8f);
+    	glRasterPos2i(window_width/2 - 8, window_height/2 - 8);
+    	glBitmap(16, 16, 0, 0, 0, 0, crosshair);
+
+      glColor3f(0.1f, 0.1f, 0.6f);
+      glRasterPos2i(window_width/2 - 28, window_height/2 - 24);
+      if(portals[BLUE] == NULL)
+        glBitmap(24, 48, 0, 0, 0, 0, indicator_left_off);
+      else
+        glBitmap(24, 48, 0, 0, 0, 0, indicator_left_on);
+
+      glColor3f(0.6f, 0.2f, 0.1f);
+      glRasterPos2i(window_width/2 + 4, window_height/2 - 24);
+      if(portals[ORANGE] == NULL)
+        glBitmap(24, 48, 0, 0, 0, 0, indicator_right_off);
+      else
+        glBitmap(24, 48, 0, 0, 0, 0, indicator_right_on);
+
+		glPopMatrix();
+  glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+
+  glEnable(GL_LIGHTING);
+}
+
 static void on_display(void) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -482,6 +522,8 @@ static void on_display(void) {
   gluLookAt(x, y, z, x + look_x, y + look_y, z + look_z, 0.0f, 1.0f, 0.0f);
 
   draw_scene(0);
+
+  draw_hud();
 
   glutSwapBuffers();
 }
