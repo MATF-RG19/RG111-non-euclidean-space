@@ -311,6 +311,8 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
     create_user_portal(BLUE, x+look_x*t, ny, z+look_z*t, w);
   else if(button == 2)
     create_user_portal(ORANGE, x+look_x*t, ny, z+look_z*t, w);
+
+  glutPostRedisplay();
 }
 
 static void draw_world() {
