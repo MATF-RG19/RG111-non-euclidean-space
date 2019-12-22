@@ -131,6 +131,13 @@ static void on_timer(int data) {
     new_z += sin(to_radians(yaw)+PI/2) * PLAYER_SPEED;
   }
 
+  if(was_reset_pressed) {
+    free_user_portal(BLUE);
+    free_user_portal(ORANGE);
+  }
+
+  flush_keyboard();
+
   // Check if the player should be teleported
   for(unsigned int i = 0; i < portal_count; i++) {
     if(portals[i] == NULL)
@@ -332,6 +339,14 @@ static void draw_world() {
 }
 
 void draw_scene(int level) {
+  for(unsigned int i = 0; i < portal_count; i++) {
+    if(portals[i] == NULL)
+      continue;
+
+    if(i == BLUE || i == ORANGE)
+      draw_portal_frame(portals[i], i);
+  }
+
   portal p;
   for(unsigned int i = 0; i < portal_count; i++) {
     if(portals[i] == NULL)
@@ -354,13 +369,22 @@ void draw_scene(int level) {
     glStencilMask(0xFF);
 
     // Draw the portal frame in the stencil buffer
-    draw_portal_frame(&p);
+    if(i == BLUE || i == ORANGE)
+      draw_user_portal_frame(&p, i);
+    else
+      draw_portal_frame(&p, i);
 
     // Enable drawing to the color and depth buffers only where the portal was
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glDepthMask(GL_TRUE);
     glClear(GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
+
+    // Disable drawing to the stencil buffer
+    glStencilMask(0x00);
+
+    // Draw where the stencil value is equal to the current level + 1
+    glStencilFunc(GL_EQUAL, level + 1, 0xFF);
 
     // If the portal is linked draw the link's view
     // Otherwise only draw the frame
@@ -385,12 +409,7 @@ void draw_scene(int level) {
         glTranslatef(-p.link->position[0]-0.005f*p.link->normal[0], -p.link->position[1], -p.link->position[2]-0.005f*p.link->normal[2]);
 
         if(level == MAX_RECURSION_LEVEL) {
-          // Disable drawing to the stencil buffer
-          glStencilMask(0x00);
-
-          // Draw where the stencil value is equal to the current level + 1
-          glStencilFunc(GL_EQUAL, level + 1, 0xFF);
-
+          // Draw the view without portals
           draw_world();
         } else {
           // Draw the view recursively from the current portal
@@ -401,13 +420,7 @@ void draw_scene(int level) {
 
       glPopMatrix();
     } else {
-      // Disable drawing to the stencil buffer
-      glStencilMask(0x00);
-
-      // Draw where the stencil value is equal to the current level + 1
-      glStencilFunc(GL_EQUAL, level + 1, 0xFF);
-
-      draw_portal_frame(&p);
+      draw_portal_frame(&p, i);
     }
 
     // Revert the stencil buffer values
@@ -427,7 +440,10 @@ void draw_scene(int level) {
     glStencilMask(0xFF);
 
     // Draw the portal frame in the stencil buffer
-    draw_portal_frame(&p);
+    if(i == BLUE || i == ORANGE)
+      draw_user_portal_frame(&p, i);
+    else
+      draw_portal_frame(&p, i);
 
     glDisable(GL_STENCIL_TEST);
   }
@@ -442,7 +458,7 @@ void draw_scene(int level) {
     if(portals[i] == NULL)
       continue;
 
-    draw_portal_frame(portals[i]);
+    draw_portal_frame(portals[i], i);
   }
 
   // Only draw at the current level

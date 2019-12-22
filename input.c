@@ -11,6 +11,12 @@ bool is_backward_pressed = false;
 bool is_left_pressed = false;
 bool is_right_pressed = false;
 
+bool was_reset_pressed = false;
+
+void flush_keyboard() {
+  was_reset_pressed = false;
+}
+
 void on_keyboard(unsigned char key, int m_x, int m_y) {
   (void) m_x;
   (void) m_y;
@@ -33,6 +39,10 @@ void on_keyboard(unsigned char key, int m_x, int m_y) {
     case 'd':
     case 'D':
       is_right_pressed = true;
+      break;
+    case 'r':
+    case 'R':
+      was_reset_pressed = true;
       break;
   }
 }

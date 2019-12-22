@@ -23,6 +23,8 @@ extern material material_concrete_green;
 extern material material_concrete_yellow;
 
 extern material material_portal;
+extern material material_portal_blue;
+extern material material_portal_orange;
 
 extern light light_basic;
 

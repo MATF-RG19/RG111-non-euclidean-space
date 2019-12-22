@@ -12,6 +12,7 @@
 
 #define PORTAL_WIDTH 2.0f
 #define PORTAL_HEIGHT 3.0f
+#define PORTAL_BORDER 0.1f
 
 typedef enum portal_color {
   BLUE = 0,

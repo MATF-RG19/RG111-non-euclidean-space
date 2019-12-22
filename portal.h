@@ -19,7 +19,8 @@ typedef struct portal {
   struct portal *link;
 } portal;
 
-extern void draw_portal_frame(portal *p);
+extern void draw_portal_frame(portal *p, portal_color color);
+extern void draw_user_portal_frame(portal *p, portal_color color);
 extern bool is_linked(portal *p);
 extern bool link_portals(portal *p1, portal *p2);
 extern bool unlink_portal(portal *p);

@@ -7,6 +7,8 @@ material material_concrete_green  = { { 0.1f, 0.5f, 0.1f, 1 }, { 0.2f, 0.8f, 0.2
 material material_concrete_yellow  = { { 0.5f, 0.5f, 0.1f, 1 }, { 0.8f, 0.8f, 0.2f, 1 }, { 0.05f, 0.05f, 0.05f, 1 }, 20 };
 
 material material_portal  = { { 0.2f, 0.05f, 0.2f, 1 }, { 0.3f, 0.1f, 0.3f, 1 }, { 0.1f, 0.1f, 0.1f, 1 }, 20 };
+material material_portal_blue  = { { 0.05f, 0.05f, 0.4f, 1 }, { 0.2f, 0.2f, 0.5f, 1 }, { 0.1f, 0.1f, 0.1f, 1 }, 20 };
+material material_portal_orange  = { { 0.4f, 0.2f, 0.1f, 1 }, { 0.6f, 0.2f, 0.1f, 1 }, { 0.1f, 0.1f, 0.1f, 1 }, 20 };
 
 light light_basic = { { 0.4f, 0.4f, 0.4f, 1 }, { 0.7f, 0.7f, 0.7f, 1 }, { 0.5f, 0.5f, 0.5f, 1 } };
 

@@ -1,7 +1,12 @@
 #include "portal.h"
 
-extern void draw_portal_frame(portal *p) {
-  set_material(&material_portal);
+extern void draw_portal_frame(portal *p, portal_color color) {
+  if(color == BLUE)
+    set_material(&material_portal_blue);
+  else if(color == ORANGE)
+    set_material(&material_portal_orange);
+  else
+    set_material(&material_portal);
 
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
@@ -15,6 +20,31 @@ extern void draw_portal_frame(portal *p) {
     glVertex3f(p->position[0]+p->normal[2]*p->width/2+p->normal[0]*0.01f, p->position[1]-p->height/2, p->position[2]-p->normal[0]*p->width/2+p->normal[2]*0.01f);
     glVertex3f(p->position[0]+p->normal[2]*p->width/2+p->normal[0]*0.01f, p->position[1]+p->height/2, p->position[2]-p->normal[0]*p->width/2+p->normal[2]*0.01f);
     glVertex3f(p->position[0]-p->normal[2]*p->width/2+p->normal[0]*0.01f, p->position[1]+p->height/2, p->position[2]+p->normal[0]*p->width/2+p->normal[2]*0.01f);
+  glEnd();
+
+  glDisable(GL_CULL_FACE);
+}
+
+extern void draw_user_portal_frame(portal *p, portal_color color) {
+  if(color == BLUE)
+    set_material(&material_portal_blue);
+  else if(color == ORANGE)
+    set_material(&material_portal_orange);
+  else
+    set_material(&material_portal);
+
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+
+  // Draw a quad at specified position normal to the secified vector
+  // The quad is moved a few pixels in the direction of the normal vector
+  // in order to prevent overlapping with the wall
+  glBegin(GL_QUADS);
+    glNormal3f(p->normal[0], p->normal[1], p->normal[2]);
+    glVertex3f(p->position[0]-p->normal[2]*(p->width/2-PORTAL_BORDER)+p->normal[0]*0.01f, p->position[1]-p->height/2+PORTAL_BORDER, p->position[2]+p->normal[0]*(p->width/2-PORTAL_BORDER)+p->normal[2]*0.01f);
+    glVertex3f(p->position[0]+p->normal[2]*(p->width/2-PORTAL_BORDER)+p->normal[0]*0.01f, p->position[1]-p->height/2+PORTAL_BORDER, p->position[2]-p->normal[0]*(p->width/2-PORTAL_BORDER)+p->normal[2]*0.01f);
+    glVertex3f(p->position[0]+p->normal[2]*(p->width/2-PORTAL_BORDER)+p->normal[0]*0.01f, p->position[1]+p->height/2-PORTAL_BORDER, p->position[2]-p->normal[0]*(p->width/2-PORTAL_BORDER)+p->normal[2]*0.01f);
+    glVertex3f(p->position[0]-p->normal[2]*(p->width/2-PORTAL_BORDER)+p->normal[0]*0.01f, p->position[1]+p->height/2-PORTAL_BORDER, p->position[2]+p->normal[0]*(p->width/2-PORTAL_BORDER)+p->normal[2]*0.01f);
   glEnd();
 
   glDisable(GL_CULL_FACE);
