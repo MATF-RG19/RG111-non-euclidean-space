@@ -108,6 +108,11 @@ static void on_timer(int data) {
   if(data != 0)
     return;
 
+  static bool should_rerender = true;
+
+  if(mouse_dx != 0 || mouse_dy != 0)
+    should_rerender = true;
+
   yaw = clamp_yaw(yaw + mouse_dx * MOUSE_SENSITIVITY);
   pitch = clamp_pitch(pitch + mouse_dy * MOUSE_SENSITIVITY);
 
@@ -134,90 +139,100 @@ static void on_timer(int data) {
     new_z += sin(to_radians(yaw)+PI/2) * PLAYER_SPEED;
   }
 
+  // Close user portals
   if(was_reset_pressed) {
     free_user_portal(BLUE);
     free_user_portal(ORANGE);
   }
 
+  // Reset keyboard state
   flush_keyboard();
 
-  // Check if the player should be teleported
-  for(unsigned int i = 0; i < portal_count; i++) {
-    if(portals[i] == NULL)
-      continue;
+  // Only calculate collisions if the player has moved
+  if(x != new_x || z != new_z) {
+    should_rerender = true;
 
-    // If the portal is linked and we passed the portal plane
-    float *offset_pos = get_offset_position(portals[i]);
-    if(is_linked(portals[i]) && sidexz3v(offset_pos, portals[i]->normal, x, z)*sidexz3v(offset_pos, portals[i]->normal, new_x, new_z) <= 0) {
-
-      float d = det2f(new_x-x, new_z-z, -portals[i]->normal[2]*portals[i]->width/2, portals[i]->normal[0]*portals[i]->width/2);
-
-      // Calculate the intersection parameter on the portal
-      float s = det2f(offset_pos[0]-x, offset_pos[2]-z, new_x-x, new_z-z)/d;
-
-      // Check if the player went through the portal, otherwise continue
-      if(fabs(s) >= 1) {
-        free(offset_pos);
+    // Check if the player should be teleported
+    for(unsigned int i = 0; i < portal_count; i++) {
+      if(portals[i] == NULL)
         continue;
+
+      // If the portal is linked and we passed the portal plane
+      float *offset_pos = get_offset_position(portals[i]);
+      if(is_linked(portals[i]) && sidexz3v(offset_pos, portals[i]->normal, x, z)*sidexz3v(offset_pos, portals[i]->normal, new_x, new_z) <= 0) {
+
+        float d = det2f(new_x-x, new_z-z, -portals[i]->normal[2]*portals[i]->width/2, portals[i]->normal[0]*portals[i]->width/2);
+
+        // Calculate the intersection parameter on the portal
+        float s = det2f(offset_pos[0]-x, offset_pos[2]-z, new_x-x, new_z-z)/d;
+
+        // Check if the player went through the portal, otherwise continue
+        if(fabs(s) >= 1) {
+          free(offset_pos);
+          continue;
+        }
+
+        // Calculate the intersection parameter on the player move vector
+        float t = det2f(offset_pos[0]-x, offset_pos[2]-z, -portals[i]->normal[2]*portals[i]->width/2, portals[i]->normal[0]*portals[i]->width/2)/d;
+
+        // Calculate the yaw change
+        float angle = angle_between2f(-portals[i]->normal[0], -portals[i]->normal[2], portals[i]->link->normal[0], portals[i]->link->normal[2]);
+
+        // Move the player
+        float offset_x = (new_x-x)*(1.0f-t);
+        float offset_z = (new_z-z)*(1.0f-t);
+
+        new_x = portals[i]->link->position[0] + portals[i]->link->normal[0]*0.1f + portals[i]->link->normal[2]*portals[i]->link->width/2*s;
+        new_z = portals[i]->link->position[2] + portals[i]->link->normal[2]*0.1f - portals[i]->link->normal[0]*portals[i]->link->width/2*s;
+
+        new_x += cos(angle)*offset_x - sin(angle)*offset_z;
+        new_z += sin(angle)*offset_x + cos(angle)*offset_z;
+
+        // Update player rotation
+        yaw = clamp_yaw(yaw + angle);
+
+        free(offset_pos);
+        break;
       }
 
-      // Calculate the intersection parameter on the player move vector
-      float t = det2f(offset_pos[0]-x, offset_pos[2]-z, -portals[i]->normal[2]*portals[i]->width/2, portals[i]->normal[0]*portals[i]->width/2)/d;
-
-      // Calculate the yaw change
-      float angle = angle_between2f(-portals[i]->normal[0], -portals[i]->normal[2], portals[i]->link->normal[0], portals[i]->link->normal[2]);
-
-      // Move the player
-      float offset_x = (new_x-x)*(1.0f-t);
-      float offset_z = (new_z-z)*(1.0f-t);
-
-      new_x = portals[i]->link->position[0] + portals[i]->link->normal[0]*0.1f + portals[i]->link->normal[2]*portals[i]->link->width/2*s;
-      new_z = portals[i]->link->position[2] + portals[i]->link->normal[2]*0.1f - portals[i]->link->normal[0]*portals[i]->link->width/2*s;
-
-      new_x += cos(angle)*offset_x - sin(angle)*offset_z;
-      new_z += sin(angle)*offset_x + cos(angle)*offset_z;
-
-      // Update player rotation
-      yaw = clamp_yaw(yaw + angle);
-
       free(offset_pos);
-      break;
     }
 
-    free(offset_pos);
-  }
+    x = new_x;
+    z = new_z;
 
-  x = new_x;
-  z = new_z;
+    // Check collisions
+    float dist = 0;
+    // Is the player hitting a wall
+    for(unsigned int i = 0; i < wall_count; i++) {
+      if(is_colliding_with_wall(x, z, walls[i], &dist)) {
+        // And is there not a portal there
+        // TODO attach portals to walls so we don't have to check collisions with all of them
+        bool in_portal = false;
+        for(unsigned int j = 0; j < portal_count; j++) {
+          if(portals[j] == NULL || portals[j]->wall != walls[i])
+            continue;
+
+          if(is_linked(portals[j]) && is_colliding_with_portal(x, y, z, portals[j])) {
+            in_portal = true;
+            break;
+          }
+        }
+        if(!in_portal) {
+          // Move the player back
+          x = x + (PLAYER_RADIUS-dist)*walls[i]->normal[0];
+          z = z + (PLAYER_RADIUS-dist)*walls[i]->normal[2];
+        }
+      }
+    }
+  }
 
   update_camera();
 
-  // Check collisions
-  float dist = 0;
-  // Is the player hitting a wall
-  for(unsigned int i = 0; i < wall_count; i++) {
-    if(is_colliding_with_wall(x, z, walls[i], &dist)) {
-      // And is there not a portal there
-      // TODO attach portals to walls so we don't have to check collisions with all of them
-      bool in_portal = false;
-      for(unsigned int j = 0; j < portal_count; j++) {
-        if(portals[j] == NULL || portals[j]->wall != walls[i])
-          continue;
-
-        if(is_linked(portals[j]) && is_colliding_with_portal(x, y, z, portals[j])) {
-          in_portal = true;
-          break;
-        }
-      }
-      if(!in_portal) {
-        // Move the player back
-        x = x + (PLAYER_RADIUS-dist)*walls[i]->normal[0];
-        z = z + (PLAYER_RADIUS-dist)*walls[i]->normal[2];
-      }
-    }
+  if(should_rerender) {
+    should_rerender = false;
+    glutPostRedisplay();
   }
-
-  glutPostRedisplay();
 
   glutTimerFunc(20, on_timer, 0);
 }
