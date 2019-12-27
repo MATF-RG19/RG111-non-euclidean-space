@@ -22,12 +22,12 @@ extern portal **portals;
 
 // Game Logic
 extern void initialize_walls(unsigned int n);
-extern unsigned int create_wall(float x, float y, float z, float normal_x, float normal_y, float normal_z, float width, float height, material* material);
+extern int create_wall(float x, float y, float z, float normal_x, float normal_y, float normal_z, float width, float height, bool anchor, material* material);
 extern void free_walls();
 
 extern void initialize_portals(unsigned int n);
-extern unsigned int create_user_portal(portal_color c, float x, float y, float z, wall* wall);
-extern unsigned int create_portal(float x, float y, float z, wall* wall, float width, float height);
+extern int create_user_portal(portal_color c, float x, float y, float z, wall* wall);
+extern int create_portal(float x, float y, float z, wall* wall, float width, float height);
 extern void free_user_portal(portal_color c);
 extern void free_portals();
 

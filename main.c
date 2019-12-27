@@ -13,6 +13,7 @@
 #include "wall.h"
 #include "logic.h"
 #include "bitmaps.h"
+#include "image.h"
 
 // Player Position
 static double x = 0;
@@ -66,6 +67,35 @@ int main(int argc, char** argv) {
   glEnable(GL_CULL_FACE);
   glEnable(GL_LIGHTING);
   glEnable(GL_NORMALIZE);
+  glEnable(GL_TEXTURE_2D);
+
+  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+
+  glGenTextures(2, textures);
+
+  Image *image = image_init(0, 0);
+
+  image_read(image, "resources/wall_dark.bmp");
+
+  glBindTexture(GL_TEXTURE_2D, textures[0]);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image->width, image->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image->pixels);
+
+  image_read(image, "resources/wall_light.bmp");
+
+  glBindTexture(GL_TEXTURE_2D, textures[1]);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image->width, image->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image->pixels);
+
+  image_done(image);
+
+  glBindTexture(GL_TEXTURE_2D, 0);
 
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
@@ -75,17 +105,17 @@ int main(int argc, char** argv) {
 
   // Initialize walls array
   initialize_walls(wall_allocation_size);
-  unsigned int wall_front = create_wall(8, 2, 0, -1, 0, 0, 16, 4, &material_concrete_green);
-  unsigned int wall_back = create_wall(-8, 2, 0, 1, 0, 0, 16, 4, &material_concrete_red);
-  unsigned int wall_left = create_wall(0, 2, -8, 0, 0, 1, 16, 4, &material_concrete_yellow);
-  unsigned int wall_right = create_wall(0, 2, 8, 0, 0, -1, 16, 4, &material_concrete_blue);
+  int wall_front = create_wall(8, 2, 0, -1, 0, 0, 16, 4, true, &material_concrete_green);
+  int wall_back = create_wall(-8, 2, 0, 1, 0, 0, 16, 4, false, &material_concrete_red);
+  int wall_left = create_wall(0, 2, -8, 0, 0, 1, 16, 4, true, &material_concrete_yellow);
+  int wall_right = create_wall(0, 2, 8, 0, 0, -1, 16, 4, true, &material_concrete_blue);
 
   // Initialize portals array
   initialize_portals(portal_allocation_size);
-  unsigned int p1 = create_portal(8, 1.5f, 0, walls[wall_front], 6, 3);
-  unsigned int p2 = create_portal(0, 1.5f, -8, walls[wall_left], 6, 3);
-  unsigned int p3 = create_portal(0, 1.5f, 8, walls[wall_right], 6, 3);
-  // unsigned int p4 = create_portal(8, 1.5f, 6, &wall_front, 2, 3);
+  int p1 = create_portal(8, 1.5f, 0, walls[wall_front], 6, 3);
+  int p2 = create_portal(0, 1.5f, -8, walls[wall_left], 6, 3);
+  int p3 = create_portal(0, 1.5f, 8, walls[wall_right], 6, 3);
+  // int p4 = create_portal(8, 1.5f, 6, &wall_front, 2, 3);
 
   // Link portals to show each other's view
   // (void)link_portals(portals[p1], portals[p4]);
@@ -335,7 +365,7 @@ static void draw_world() {
 
   // Draw the walls
   for(unsigned int i = 0; i < wall_count; i++) {
-    draw_wall(walls[i]);
+    draw_textured_wall(walls[i]);
   }
 
   // Draw the floor
@@ -559,6 +589,8 @@ static void on_reshape(int width, int height) {
 }
 
 static void on_close(void) {
+  glDeleteTextures(2, textures);
+
   free_portals();
   free_walls();
 }

@@ -38,7 +38,7 @@ static void realloc_walls(unsigned int step) {
   wall_allocated += step;
 }
 
-unsigned int create_wall(float x, float y, float z, float normal_x, float normal_y, float normal_z, float width, float height, material* material) {
+int create_wall(float x, float y, float z, float normal_x, float normal_y, float normal_z, float width, float height, bool anchor, material* material) {
   wall *w = malloc(sizeof(wall));
   w->position[0] = x;
   w->position[1] = y;
@@ -48,6 +48,7 @@ unsigned int create_wall(float x, float y, float z, float normal_x, float normal
   w->normal[2] = normal_z;
   w->width = width;
   w->height = height;
+  w->anchor = anchor;
   w->material = material;
 
   if(wall_allocated == portal_count) {
@@ -92,9 +93,12 @@ static void realloc_portals(unsigned int step) {
   portal_allocated += step;
 }
 
-unsigned int create_user_portal(portal_color c, float x, float y, float z, wall* wall) {
+int create_user_portal(portal_color c, float x, float y, float z, wall* wall) {
   if(portals[c]!=NULL)
     free_user_portal(c);
+
+  if(wall == NULL || !wall->anchor)
+    return -1;
 
   portal *p = malloc(sizeof(portal));
   p->position[0] = x;
@@ -113,7 +117,10 @@ unsigned int create_user_portal(portal_color c, float x, float y, float z, wall*
   return c;
 }
 
-unsigned int create_portal(float x, float y, float z, wall* wall, float width, float height) {
+int create_portal(float x, float y, float z, wall* wall, float width, float height) {
+  if(wall == NULL || !wall->anchor)
+    return -1;
+
   portal *p = malloc(sizeof(portal));
   p->position[0] = x;
   p->position[1] = y;

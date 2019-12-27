@@ -14,10 +14,12 @@ typedef struct wall {
   GLfloat normal[3];
   GLfloat width;
   GLfloat height;
+  bool anchor;
   material *material;
 } wall;
 
 extern void draw_wall(wall *w);
+extern void draw_textured_wall(wall *w);
 extern float distance_from_wall(float x, float z, wall *w, float *intersect_x, float *intersect_z);
 extern bool is_colliding_with_wall(float x, float z, wall *w, float *dist);
 
