@@ -28,6 +28,14 @@ extern int sgn(float x) {
   return (x > 0) ? 1 : ((x < 0) ? -1 : 0);
 }
 
+extern float clamp(float value, float min, float max) {
+  if(value < min)
+    value = min;
+  else if(value > max)
+    value = max;
+  return value;
+}
+
 extern float norm2f(float x, float y) {
   return sqrt(x*x + y*y);
 }

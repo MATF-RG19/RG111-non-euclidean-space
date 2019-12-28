@@ -325,6 +325,8 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
   // Find the closest wall the player is looking at
   float t = INT_MAX;
   wall *w = NULL;
+  float dist_horizontal = 0;
+
   for(unsigned int i = 0; i < wall_count; i++) {
     // Make sure the player is facing the front side of the wall
     if(sidexz3v(walls[i]->position, walls[i]->normal, x, z) != 1)
@@ -337,50 +339,57 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
 
     // Calculate the intersection parameter
     float nt = -(dot_prod3f(x, y, z, walls[i]->normal[0], walls[i]->normal[1], walls[i]->normal[2])+(-walls[i]->normal[0]*walls[i]->position[0]-walls[i]->normal[1]*walls[i]->position[1]-walls[i]->normal[2]*walls[i]->position[2]))/
-    dot_prod3f(look_x, look_y, look_z, walls[i]->normal[0], walls[i]->normal[1], walls[i]->normal[2]);
+      dot_prod3f(look_x, look_y, look_z, walls[i]->normal[0], walls[i]->normal[1], walls[i]->normal[2]);
 
     // We don't care about walls behind the player
     if(nt<=0)
       continue;
 
-    // Check if the intersection is inside the wall and there is enough space to make a portal there
+    // Check if the intersection is inside the wall
     float dist_h = sqrt((x+look_x*nt-walls[i]->position[0])*(x+look_x*nt-walls[i]->position[0])+(z+look_z*nt-walls[i]->position[2])*(z+look_z*nt-walls[i]->position[2]));
     float dist_v = y+look_y*nt-walls[i]->position[1];
 
-    if(fabs(dist_h)>walls[i]->width/2-PORTAL_WIDTH/2 || fabs(dist_v)>walls[i]->height/2)
+    if(fabs(dist_h)>walls[i]->width/2 || fabs(dist_v)>walls[i]->height/2)
       continue;
 
     // If the current wall is closer use it instead
     if(nt < t) {
       t = nt;
       w = walls[i];
+      dist_horizontal = dist_h;
     }
   }
 
   // Check if there was an intersection point
-  if(t == INT_MAX)
-    return;
+  if(t != INT_MAX) {
+    // Clamp position on x and z axes
+    float nx = x+look_x*t;
+    float nz = z+look_z*t;
+    if(fabs(dist_horizontal)>w->width/2-PORTAL_WIDTH/2) {
+      dist_horizontal = clamp(dist_horizontal, -w->width/2+PORTAL_WIDTH/2, w->width/2-PORTAL_WIDTH/2);
+      nx = w->position[0]+sgn(x+look_x*t-w->position[0])*dist_horizontal*w->normal[2];
+      nz = w->position[2]+sgn(z+look_z*t-w->position[2])*dist_horizontal*w->normal[0];
+    }
 
-  // Clamp position on y axis
-  float ny = y+look_y*t;
-  if(ny < w->position[1]-w->height/2+PORTAL_HEIGHT/2)
-    ny = w->position[1]-w->height/2+PORTAL_HEIGHT/2;
-  else if(ny > w->position[1]+w->height/2-PORTAL_HEIGHT/2)
-    ny = w->position[1]+w->height/2-PORTAL_HEIGHT/2;
+    // Clamp position on y axis
+    float ny = clamp(y+look_y*t, w->position[1]-w->height/2+PORTAL_HEIGHT/2, w->position[1]+w->height/2-PORTAL_HEIGHT/2);
 
-  // Check if there is another portal at that position
-  for(unsigned int i = 0; i < portal_count; i++) {
-    if(portals[i] != NULL && portals[i]->wall == w && sqrt(fabs(x+look_x*t-portals[i]->position[0])*fabs(x+look_x*t-portals[i]->position[0])+fabs(z+look_z*t-portals[i]->position[2])*fabs(z+look_z*t-portals[i]->position[2]))<portals[i]->width/2+PORTAL_WIDTH/2) {
-      return;
+    // Check if there is another portal at that position
+    bool should_create_portal = true;
+    for(unsigned int i = 0; i < portal_count; i++) {
+      if(portals[i] != NULL && portals[i]->wall == w && sqrt(fabs(nx-portals[i]->position[0])*fabs(nx-portals[i]->position[0])+fabs(nz-portals[i]->position[2])*fabs(nz-portals[i]->position[2]))<portals[i]->width/2+PORTAL_WIDTH/2) {
+        should_create_portal = false;;
+      }
+    }
+
+    if(should_create_portal) {
+      // Create the portal on the closest wall
+      if(button == 0)
+        create_user_portal(BLUE, nx, ny, nz, w);
+      else if(button == 2)
+        create_user_portal(ORANGE, nx, ny, nz, w);
     }
   }
-
-  // Create the portal on the closest wall
-  // printf("%f - %f %f %f\n", t, x+look_x*t, y+look_y*t, z+look_z*t);
-  if(button == 0)
-    create_user_portal(BLUE, x+look_x*t, ny, z+look_z*t, w);
-  else if(button == 2)
-    create_user_portal(ORANGE, x+look_x*t, ny, z+look_z*t, w);
 
   glutPostRedisplay();
 }

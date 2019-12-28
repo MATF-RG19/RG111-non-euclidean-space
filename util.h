@@ -12,6 +12,7 @@ extern double clamp_yaw(double yaw);
 extern double clamp_pitch(double pitch);
 
 extern int sgn(float x);
+extern float clamp(float value, float min, float max);
 extern float norm2f(float x, float y);
 extern float norm3v(float *vector);
 extern void normalize3v(GLfloat *vector);
