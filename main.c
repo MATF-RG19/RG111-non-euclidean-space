@@ -42,6 +42,52 @@ static void on_mouse_click(int button, int state, int m_x, int m_y);
 static void on_timer(int data);
 static void on_close(void);
 
+static void load_level() {
+  // Starting room
+  create_wall(-10, 2, -3, 1, 0, 0, 14, 4, true, &material_concrete_red);        // Back wall
+  create_wall(-6, 2, 4, 0, 0, -1, 8, 4, false, &material_concrete_yellow);      // Right wall
+  create_wall(-6, 2, -10, 0, 0, 1, 8, 4, false, &material_concrete_yellow);     // Left wall
+  create_wall(-2, 0.25, -3, -1, 0, 0, 14, 0.5, false, &material_concrete_blue); // Lower starting room facing separator
+  create_wall(-2, 3, -3, -1, 0, 0, 14, 2, false, &material_concrete_blue);      // Upper starting room facing separator
+
+  // Middle rooms
+  create_wall(4, 2, -10, 0, 0, 1, 12, 4, true, &material_concrete_yellow);      // Left wall
+  create_wall(4, 2, 10, 0, 0, -1, 12, 4, false, &material_concrete_blue);       // Right wall
+
+  // Starting room separators
+  create_wall(-2, 0.25, -3, 1, 0, 0, 14, 0.5, false, &material_concrete_blue);  // Lower middle room facing separator
+  create_wall(-2, 3, -3, 1, 0, 0, 14, 2, false, &material_concrete_blue);       // Upper middle room facing separator
+  create_wall(-2, 2, 8, 1, 0, 0, 4, 4, true, &material_concrete_blue);          // Full anchored separator
+  create_wall(-2, 2, 5, 1, 0, 0, 2, 4, false, &material_concrete_blue);         // Full non-anchored separator
+
+  // Far room separators
+  create_wall(10, 0.25, -3, -1, 0, 0, 14, 0.5, false, &material_concrete_blue); // Lower middle room facing separator
+  create_wall(10, 3, -3, -1, 0, 0, 14, 2, false, &material_concrete_blue);      // Upper middle room facing separator
+  create_wall(10, 2, 7, -1, 0, 0, 6, 4, false, &material_concrete_blue);        // Full middle room facing separator
+
+  // Middle rooms separator
+  create_wall(4, 2, 0, 0, 0, 1, 12, 4, false, &material_concrete_blue);         // Right room facing middle separator
+  create_wall(4, 2, 0, 0, 0, -1, 12, 4, false, &material_concrete_blue);        // Left room facing middle separator
+
+  // Far room
+  create_wall(16, 2, 0, -1, 0, 0, 20, 4, false, &material_concrete_red);        // Front wall
+  create_wall(13, 2, 10, 0, 0, -1, 6, 4, true, &material_concrete_red);         // Right wall
+  create_wall(13, 2, -10, 0, 0, 1, 6, 4, false, &material_concrete_red);        // Left Wall
+
+  // Far room separators
+  create_wall(10, 0.25, -3, 1, 0, 0, 14, 0.5, false, &material_concrete_blue);  // Lower far room facing separator
+  create_wall(10, 3, -3, 1, 0, 0, 14, 2, false, &material_concrete_blue);       // Upper far room facing separator
+  create_wall(10, 2, 7, 1, 0, 0, 6, 4, false, &material_concrete_blue);         // Full far room facing separator
+
+  // Player position
+  x = -6.0f;
+  y = 1.0f;
+  z = -5.0f;
+
+  new_x = x;
+  new_z = z;
+}
+
 int main(int argc, char** argv) {
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_STENCIL | GLUT_DOUBLE);
@@ -105,23 +151,11 @@ int main(int argc, char** argv) {
 
   // Initialize walls array
   initialize_walls(wall_allocation_size);
-  int wall_front = create_wall(8, 2, 0, -1, 0, 0, 16, 4, true, &material_concrete_green);
-  int wall_back = create_wall(-8, 2, 0, 1, 0, 0, 16, 4, false, &material_concrete_red);
-  int wall_left = create_wall(0, 2, -8, 0, 0, 1, 16, 4, true, &material_concrete_yellow);
-  int wall_right = create_wall(0, 2, 8, 0, 0, -1, 16, 4, true, &material_concrete_blue);
 
   // Initialize portals array
   initialize_portals(portal_allocation_size);
-  int p1 = create_portal(8, 1.5f, 0, walls[wall_front], 6, 3);
-  int p2 = create_portal(0, 1.5f, -8, walls[wall_left], 6, 3);
-  int p3 = create_portal(0, 1.5f, 8, walls[wall_right], 6, 3);
-  // int p4 = create_portal(8, 1.5f, 6, &wall_front, 2, 3);
 
-  // Link portals to show each other's view
-  // (void)link_portals(portals[p1], portals[p4]);
-  (void)link_portals(portals[p2], portals[p3]);
-
-  // (void)link_portals(portals[p1], portals[p2]);
+  load_level();
 
   glutMainLoop();
 
@@ -292,6 +326,10 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
   float t = INT_MAX;
   wall *w = NULL;
   for(unsigned int i = 0; i < wall_count; i++) {
+    // Make sure the player is facing the front side of the wall
+    if(sidexz3v(walls[i]->position, walls[i]->normal, x, z) != 1)
+      continue;
+
     // If the look vector is parallel to the wall there is no intersection
     float d = dot_prod3f(look_x, look_y, look_z, walls[i]->normal[0], walls[i]->normal[1], walls[i]->normal[2]);
     if(d == 0)
@@ -305,12 +343,9 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
     if(nt<=0)
       continue;
 
-      // Check if the intersection is inside the wall and there is enough space to make a portal there
+    // Check if the intersection is inside the wall and there is enough space to make a portal there
     float dist_h = sqrt((x+look_x*nt-walls[i]->position[0])*(x+look_x*nt-walls[i]->position[0])+(z+look_z*nt-walls[i]->position[2])*(z+look_z*nt-walls[i]->position[2]));
     float dist_v = y+look_y*nt-walls[i]->position[1];
-
-    if(y+look_y*nt > 3)
-      continue;
 
     if(fabs(dist_h)>walls[i]->width/2-PORTAL_WIDTH/2 || fabs(dist_v)>walls[i]->height/2)
       continue;
@@ -326,7 +361,12 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
   if(t == INT_MAX)
     return;
 
-  float ny = y+look_y*t < PORTAL_HEIGHT/2 ? PORTAL_HEIGHT/2 : y+look_y*t;
+  // Clamp position on y axis
+  float ny = y+look_y*t;
+  if(ny < w->position[1]-w->height/2+PORTAL_HEIGHT/2)
+    ny = w->position[1]-w->height/2+PORTAL_HEIGHT/2;
+  else if(ny > w->position[1]+w->height/2-PORTAL_HEIGHT/2)
+    ny = w->position[1]+w->height/2-PORTAL_HEIGHT/2;
 
   // Check if there is another portal at that position
   for(unsigned int i = 0; i < portal_count; i++) {
@@ -373,19 +413,13 @@ static void draw_world() {
     set_material(&material_concrete_white);
     glNormal3f(0, 1, 0);
 
-    glVertex3f(-8.0f, 0, -8.0f);
-    glVertex3f(-8.0f, 0, 8.0f);
-    glVertex3f(8.0f, 0, 8.0f);
-    glVertex3f(8.0f, 0, -8.0f);
+    glVertex3f(-10.0f, 0, -10.0f);
+    glVertex3f(-10.0f, 0, 10.0f);
+    glVertex3f(16.0f, 0, 10.0f);
+    glVertex3f(16.0f, 0, -10.0f);
   glEnd();
 
   glDisable(GL_CULL_FACE);
-
-  glPushMatrix();
-    set_material(&material_concrete_yellow);
-    glTranslatef(-3, 1, 0);
-    glutSolidTeapot(1);
-  glPopMatrix();
 }
 
 void draw_scene(int level) {
@@ -452,7 +486,7 @@ void draw_scene(int level) {
         // Flip the camera
         glRotatef(180, 0, 1, 0);
         // Find the transformation between the portals
-        // We multiply by 0.99 so it doesn't look disconnected
+        // We offset by 0.005 in the direction of the normal vector so it doesn't look disconnected
         // because the portal is offset from the wall a few pixels
         glTranslatef(-p.position[0]-0.005f*p.normal[0], p.position[1], -p.position[2]-0.005f*p.normal[2]);
         glRotatef(angle_betweenxz3v(p.normal, p.link->normal), 0, 1, 0);
