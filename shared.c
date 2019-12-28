@@ -1,6 +1,7 @@
 #include "shared.h"
 
-int window_width = 960;
-int window_height = 540;
+int window_width = INITIAL_WIDTH;
+int window_height = INITIAL_HEIGHT;
+bool fullscreen = false;
 
 GLuint textures[2];

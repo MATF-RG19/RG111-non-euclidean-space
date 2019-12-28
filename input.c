@@ -24,6 +24,16 @@ void on_keyboard(unsigned char key, int m_x, int m_y) {
     case 27:
       exit(0);
       break;
+    case 'f':
+    case 'F':
+      if(fullscreen) {
+        glutReshapeWindow(INITIAL_WIDTH, INITIAL_HEIGHT);
+        fullscreen = false;
+      } else {
+        glutFullScreen();
+        fullscreen = true;
+      }
+      break;
     case 'w':
     case 'W':
       is_forward_pressed = true;

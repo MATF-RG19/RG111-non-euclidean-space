@@ -1,7 +1,11 @@
 #ifndef SHARED_H_
 #define SHARED_H_
 
+#include <stdbool.h>
 #include <GL/glut.h>
+
+#define INITIAL_WIDTH 960
+#define INITIAL_HEIGHT 540
 
 #define PI 3.14159265359
 #define MOUSE_SENSITIVITY 0.2
@@ -24,6 +28,7 @@ typedef enum portal_color {
 
 extern int window_width;
 extern int window_height;
+extern bool fullscreen;
 
 extern GLuint textures[2];
 

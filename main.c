@@ -500,6 +500,9 @@ static void draw_hud() {
     glLoadIdentity();
     gluOrtho2D(0, window_width, 0, window_height);
 
+    // Trick for bitmaps not to disappear when a wall is too close to the player
+    glTranslatef(0, 0, 1.0f);
+
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     	glLoadIdentity();
