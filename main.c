@@ -207,6 +207,7 @@ static void on_timer(int data) {
   if(was_reset_pressed) {
     free_user_portal(BLUE);
     free_user_portal(ORANGE);
+    should_rerender = true;
   }
 
   // Reset keyboard state
