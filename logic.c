@@ -51,7 +51,7 @@ int create_wall(float x, float y, float z, float normal_x, float normal_y, float
   w->anchor = anchor;
   w->material = material;
 
-  if(wall_allocated == portal_count) {
+  if(wall_allocated == wall_count) {
     realloc_walls(wall_allocation_size);
   }
 
