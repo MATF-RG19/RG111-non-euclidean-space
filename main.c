@@ -22,6 +22,7 @@ static double y = 1.0f;
 static double z = 0;
 
 static double new_x = 0;
+static double new_y = 0;
 static double new_z = 0;
 
 // Camera Rotation
@@ -135,6 +136,7 @@ static void on_timer(int data) {
   update_mouse();
 
   new_x = x;
+  new_y = y;
   new_z = z;
 
   // TODO: Normalize move vector
@@ -153,6 +155,12 @@ static void on_timer(int data) {
   if(is_right_pressed) {
     new_x += cos(to_radians(yaw)+PI/2) * PLAYER_SPEED;
     new_z += sin(to_radians(yaw)+PI/2) * PLAYER_SPEED;
+  }
+
+  if(new_y > PLAYER_HEIGHT) {
+    new_y = new_y - PLAYER_SPEED < PLAYER_HEIGHT ? PLAYER_HEIGHT : new_y - PLAYER_SPEED;
+    y = new_y;
+    should_rerender = true;
   }
 
   // Close user portals
@@ -200,6 +208,7 @@ static void on_timer(int data) {
         float offset_z = (new_z-z)*(1.0f-t);
 
         new_x = portals[i]->link->position[0] + portals[i]->link->normal[0]*0.1f + portals[i]->link->normal[2]*portals[i]->link->width/2*s;
+        new_y = portals[i]->link->position[1] - portals[i]->position[1] + y;
         new_z = portals[i]->link->position[2] + portals[i]->link->normal[2]*0.1f - portals[i]->link->normal[0]*portals[i]->link->width/2*s;
 
         new_x += cos(angle)*offset_x - sin(angle)*offset_z;
@@ -216,6 +225,7 @@ static void on_timer(int data) {
     }
 
     x = new_x;
+    y = new_y;
     z = new_z;
 
     // Check collisions
@@ -224,7 +234,6 @@ static void on_timer(int data) {
     for(unsigned int i = 0; i < wall_count; i++) {
       if(is_colliding_with_wall(x, z, walls[i], &dist)) {
         // And is there not a portal there
-        // TODO attach portals to walls so we don't have to check collisions with all of them
         bool in_portal = false;
         for(unsigned int j = 0; j < portal_count; j++) {
           if(portals[j] == NULL || portals[j]->wall != walls[i])
@@ -237,8 +246,8 @@ static void on_timer(int data) {
         }
         if(!in_portal) {
           // Move the player back
-          x = x + (PLAYER_RADIUS-dist)*walls[i]->normal[0];
-          z = z + (PLAYER_RADIUS-dist)*walls[i]->normal[2];
+          x = x + (PLAYER_COLLISION_RADIUS-dist)*walls[i]->normal[0];
+          z = z + (PLAYER_COLLISION_RADIUS-dist)*walls[i]->normal[2];
         }
       }
     }

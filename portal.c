@@ -85,9 +85,9 @@ extern float distance_from_portal(float x, float z, portal *p, float *intersect_
 extern bool is_colliding_with_portal(float x, float y, float z, portal *p) {
   float dist, intersect_x, intersect_z = 0;
   dist = distance_from_portal(x, z, p, &intersect_x, &intersect_z);
-  return dist < PLAYER_RADIUS &&
-    norm2f(intersect_x-p->position[0], intersect_z-p->position[2]) < p->width/2 - PLAYER_RADIUS &&
-    p->position[1]-p->height/2 <= y-PLAYER_HEIGHT/2 && p->position[1]+p->height/2 >= y+PLAYER_HEIGHT/2;
+  return dist < PLAYER_COLLISION_RADIUS &&
+    norm2f(intersect_x-p->position[0], intersect_z-p->position[2]) < p->width/2 - PLAYER_COLLISION_RADIUS &&
+    p->position[1]-p->height/2 <= y-PLAYER_COLLISION_HEIGHT/2 && p->position[1]+p->height/2 >= y+PLAYER_COLLISION_HEIGHT/2;
 }
 
 extern float* get_offset_position(portal* p) {

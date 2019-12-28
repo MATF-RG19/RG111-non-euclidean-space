@@ -54,5 +54,5 @@ extern float distance_from_wall(float x, float z, wall *w, float *intersect_x, f
 extern bool is_colliding_with_wall(float x, float z, wall *w, float *dist) {
   float intersect_x, intersect_z = 0;
   *dist = distance_from_wall(x, z, w, &intersect_x, &intersect_z);
-  return *dist < PLAYER_RADIUS && norm2f(intersect_x-w->position[0], intersect_z-w->position[2]) < w->width/2 + PLAYER_RADIUS;
+  return *dist < PLAYER_COLLISION_RADIUS && norm2f(intersect_x-w->position[0], intersect_z-w->position[2]) < w->width/2 + PLAYER_COLLISION_RADIUS;
 }
