@@ -14,8 +14,6 @@ extern void draw_wall(wall *w) {
 }
 
 extern void draw_textured_wall(wall *w) {
-  set_material(w->material);
-
   // Set the wall texture depending on the anchor field
   if(w->anchor)
     glBindTexture(GL_TEXTURE_2D, textures[1]);

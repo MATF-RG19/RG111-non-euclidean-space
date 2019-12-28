@@ -14,6 +14,7 @@
 #include "logic.h"
 #include "bitmaps.h"
 #include "image.h"
+#include "level.h"
 
 // Player Position
 static double x = 0;
@@ -32,61 +33,12 @@ static double look_x = 1;
 static double look_y = 0;
 static double look_z = 0;
 
-// Lights
-static GLfloat main_light_position[] = { 0, 5, 0, 1 };
-
 // GLUT Event Handlers
 static void on_display(void);
 static void on_reshape(int width, int height);
 static void on_mouse_click(int button, int state, int m_x, int m_y);
 static void on_timer(int data);
 static void on_close(void);
-
-static void load_level() {
-  // Starting room
-  create_wall(-10, 2, -3, 1, 0, 0, 14, 4, true, &material_concrete_red);        // Back wall
-  create_wall(-6, 2, 4, 0, 0, -1, 8, 4, false, &material_concrete_yellow);      // Right wall
-  create_wall(-6, 2, -10, 0, 0, 1, 8, 4, false, &material_concrete_yellow);     // Left wall
-  create_wall(-2, 0.25, -3, -1, 0, 0, 14, 0.5, false, &material_concrete_blue); // Lower starting room facing separator
-  create_wall(-2, 3, -3, -1, 0, 0, 14, 2, false, &material_concrete_blue);      // Upper starting room facing separator
-
-  // Middle rooms
-  create_wall(4, 2, -10, 0, 0, 1, 12, 4, true, &material_concrete_yellow);      // Left wall
-  create_wall(4, 2, 10, 0, 0, -1, 12, 4, false, &material_concrete_blue);       // Right wall
-
-  // Starting room separators
-  create_wall(-2, 0.25, -3, 1, 0, 0, 14, 0.5, false, &material_concrete_blue);  // Lower middle room facing separator
-  create_wall(-2, 3, -3, 1, 0, 0, 14, 2, false, &material_concrete_blue);       // Upper middle room facing separator
-  create_wall(-2, 2, 8, 1, 0, 0, 4, 4, true, &material_concrete_blue);          // Full anchored separator
-  create_wall(-2, 2, 5, 1, 0, 0, 2, 4, false, &material_concrete_blue);         // Full non-anchored separator
-
-  // Far room separators
-  create_wall(10, 0.25, -3, -1, 0, 0, 14, 0.5, false, &material_concrete_blue); // Lower middle room facing separator
-  create_wall(10, 3, -3, -1, 0, 0, 14, 2, false, &material_concrete_blue);      // Upper middle room facing separator
-  create_wall(10, 2, 7, -1, 0, 0, 6, 4, false, &material_concrete_blue);        // Full middle room facing separator
-
-  // Middle rooms separator
-  create_wall(4, 2, 0, 0, 0, 1, 12, 4, false, &material_concrete_blue);         // Right room facing middle separator
-  create_wall(4, 2, 0, 0, 0, -1, 12, 4, false, &material_concrete_blue);        // Left room facing middle separator
-
-  // Far room
-  create_wall(16, 2, 0, -1, 0, 0, 20, 4, false, &material_concrete_red);        // Front wall
-  create_wall(13, 2, 10, 0, 0, -1, 6, 4, true, &material_concrete_red);         // Right wall
-  create_wall(13, 2, -10, 0, 0, 1, 6, 4, false, &material_concrete_red);        // Left Wall
-
-  // Far room separators
-  create_wall(10, 0.25, -3, 1, 0, 0, 14, 0.5, false, &material_concrete_blue);  // Lower far room facing separator
-  create_wall(10, 3, -3, 1, 0, 0, 14, 2, false, &material_concrete_blue);       // Upper far room facing separator
-  create_wall(10, 2, 7, 1, 0, 0, 6, 4, false, &material_concrete_blue);         // Full far room facing separator
-
-  // Player position
-  x = -6.0f;
-  y = 1.0f;
-  z = -5.0f;
-
-  new_x = x;
-  new_z = z;
-}
 
 int main(int argc, char** argv) {
   glutInit(&argc, argv);
@@ -155,7 +107,7 @@ int main(int argc, char** argv) {
   // Initialize portals array
   initialize_portals(portal_allocation_size);
 
-  load_level();
+  load_level(&x, &y, &z);
 
   glutMainLoop();
 
@@ -393,43 +345,6 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
   }
 
   glutPostRedisplay();
-}
-
-static void draw_world() {
-  glEnable(GL_CULL_FACE);
-  glDisable(GL_LIGHTING);
-
-  // Draw the inside of the skybox sphere
-  glCullFace(GL_FRONT);
-
-  // Skybox
-  glColor3f(0.2f, 0.8f, 1);
-  glutSolidSphere(50, 10, 10);
-
-  glEnable(GL_LIGHTING);
-
-  // Draw the front faces of the walls
-  glCullFace(GL_BACK);
-
-  init_light(GL_LIGHT0, main_light_position, &light_basic);
-
-  // Draw the walls
-  for(unsigned int i = 0; i < wall_count; i++) {
-    draw_textured_wall(walls[i]);
-  }
-
-  // Draw the floor
-  glBegin(GL_QUADS);
-    set_material(&material_concrete_white);
-    glNormal3f(0, 1, 0);
-
-    glVertex3f(-10.0f, 0, -10.0f);
-    glVertex3f(-10.0f, 0, 10.0f);
-    glVertex3f(16.0f, 0, 10.0f);
-    glVertex3f(16.0f, 0, -10.0f);
-  glEnd();
-
-  glDisable(GL_CULL_FACE);
 }
 
 void draw_scene(int level) {

@@ -3,10 +3,10 @@ CC = gcc
 CFLAGS = -Wall -Wextra
 LIBS = -lGL -lGLU -lglut -lm
 
-$(PROGRAM): main.o shared.o input.o util.o light.o portal.o wall.o logic.o image.o
-	$(CC) $(CFLAGS) $(LIBS) -o $(PROGRAM) main.o shared.o input.o util.o light.o portal.o wall.o logic.o image.o
+$(PROGRAM): main.o shared.o input.o util.o light.o portal.o wall.o logic.o image.o level.o
+	$(CC) $(CFLAGS) $(LIBS) -o $(PROGRAM) main.o shared.o input.o util.o light.o portal.o wall.o logic.o image.o level.o
 
-main.o: main.c shared.h util.h input.h light.h portal.h wall.h logic.h bitmaps.h
+main.o: main.c shared.h util.h input.h light.h portal.h wall.h logic.h bitmaps.h level.h
 	$(CC) $(CFLAGS) $(LIBS) -c main.c -o main.o
 
 shared.o: shared.c shared.h
@@ -32,6 +32,9 @@ logic.o: logic.c logic.h shared.h portal.h wall.h
 
 image.o: image.c image.h
 	$(CC) $(CFLAGS) -c image.c -o image.o
+
+level.o: level.c level.h shared.h light.h wall.h portal.h logic.h
+	$(CC) $(CFLAGS) -c level.c -o level.o
 
 .PHONY: clean
 
