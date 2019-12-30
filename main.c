@@ -59,6 +59,7 @@ int main(int argc, char** argv) {
   // Even though it works and is in the API
   glutCloseFunc(on_close);
 
+  // Take over the cursor
   glutSetCursor(GLUT_CURSOR_NONE);
   glutWarpPointer(window_width/2, window_height/2);
 
@@ -70,6 +71,7 @@ int main(int argc, char** argv) {
 
   glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
+  // Load textures
   glGenTextures(2, textures);
 
   Image *image = image_init(0, 0);
@@ -96,11 +98,10 @@ int main(int argc, char** argv) {
 
   glBindTexture(GL_TEXTURE_2D, 0);
 
+  // Set the pixel storage mode for bitmaps
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
   glClearColor(0, 0, 0, 0);
-
-  glutTimerFunc(20, on_timer, 0);
 
   // Initialize walls array
   initialize_walls(wall_allocation_size);
@@ -108,7 +109,11 @@ int main(int argc, char** argv) {
   // Initialize portals array
   initialize_portals(portal_allocation_size);
 
+  // Load the level and set the player's position
   load_level(&x, &y, &z);
+
+  // Start main timer
+  glutTimerFunc(20, on_timer, 0);
 
   glutMainLoop();
 
@@ -157,6 +162,7 @@ static void on_timer(int data) {
     new_z += sin(to_radians(yaw)+PI/2) * PLAYER_SPEED;
   }
 
+  // Apply gravity
   if(new_y > PLAYER_HEIGHT) {
     new_y = new_y - PLAYER_SPEED < PLAYER_HEIGHT ? PLAYER_HEIGHT : new_y - PLAYER_SPEED;
     y = new_y;
@@ -186,6 +192,7 @@ static void on_timer(int data) {
       float *offset_pos = get_offset_position(portals[i]);
       if(is_linked(portals[i]) && sidexz3v(offset_pos, portals[i]->normal, x, z)*sidexz3v(offset_pos, portals[i]->normal, new_x, new_z) <= 0) {
 
+        // Calculate the intersection parameter on the move vector
         float d = det2f(new_x-x, new_z-z, -portals[i]->normal[2]*portals[i]->width/2, portals[i]->normal[0]*portals[i]->width/2);
 
         // Calculate the intersection parameter on the portal
@@ -357,6 +364,7 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
 }
 
 void draw_scene(int level) {
+  // Draw user portal borders
   for(unsigned int i = 0; i < portal_count; i++) {
     if(portals[i] == NULL)
       continue;
@@ -365,6 +373,7 @@ void draw_scene(int level) {
       draw_portal_frame(portals[i], i);
   }
 
+  // Draw portal views
   portal p;
   for(unsigned int i = 0; i < portal_count; i++) {
     if(portals[i] == NULL)

@@ -90,6 +90,7 @@ extern bool is_colliding_with_portal(float x, float y, float z, portal *p) {
     p->position[1]-p->height/2 <= y-PLAYER_COLLISION_HEIGHT/2 && p->position[1]+p->height/2 >= y+PLAYER_COLLISION_HEIGHT/2;
 }
 
+// Get the portals location offset in the direction of the normal
 extern float* get_offset_position(portal* p) {
   float *pos = calloc(3, sizeof(float));
   pos[0] = p->position[0]+0.1f*p->normal[0];

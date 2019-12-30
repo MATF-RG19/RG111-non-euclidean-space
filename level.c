@@ -173,10 +173,11 @@ extern void draw_world() {
     glVertex3f(16.0f, 0, -10.0f);
   glEnd();
 
-  glDisable(GL_CULL_FACE);
-
+  // Draw the cake
   glPushMatrix();
     glTranslatef(5.0f, 0.0f, 5.0f);
     draw_cake();
   glPopMatrix();
+
+  glDisable(GL_CULL_FACE);
 }
