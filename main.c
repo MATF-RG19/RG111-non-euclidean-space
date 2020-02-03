@@ -562,7 +562,7 @@ static void on_reshape(int width, int height) {
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  gluPerspective((GLdouble)60, (GLdouble)width / (GLdouble)height, (GLdouble)0.1, (GLdouble)100.0);
+  gluPerspective((GLdouble)60, (GLdouble)width / (GLdouble)height, (GLdouble)0.01, (GLdouble)100.0);
 
   glutPostRedisplay();
 }
