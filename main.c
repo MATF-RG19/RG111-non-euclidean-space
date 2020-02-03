@@ -490,7 +490,7 @@ void draw_scene(int level) {
   // Only draw at the current level
   glEnable(GL_STENCIL_TEST);
   glStencilMask(0x00);
-  glStencilFunc(GL_LEQUAL, level, 0xFF);
+  glStencilFunc(GL_EQUAL, level, 0xFF);
 
   // Render the world from the players perspective
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
