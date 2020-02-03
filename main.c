@@ -307,8 +307,7 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
       continue;
 
     // Calculate the intersection parameter
-    float nt = -(dot_prod3f(x, y, z, walls[i]->normal[0], walls[i]->normal[1], walls[i]->normal[2])+(-walls[i]->normal[0]*walls[i]->position[0]-walls[i]->normal[1]*walls[i]->position[1]-walls[i]->normal[2]*walls[i]->position[2]))/
-      dot_prod3f(look_x, look_y, look_z, walls[i]->normal[0], walls[i]->normal[1], walls[i]->normal[2]);
+    float nt = -(dot_prod3f(x, y, z, walls[i]->normal[0], walls[i]->normal[1], walls[i]->normal[2])+(-walls[i]->normal[0]*walls[i]->position[0]-walls[i]->normal[1]*walls[i]->position[1]-walls[i]->normal[2]*walls[i]->position[2]))/d;
 
     // We don't care about walls behind the player
     if(nt<=0)
