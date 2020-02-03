@@ -192,7 +192,6 @@ static void on_timer(int data) {
       float *offset_pos = get_offset_position(portals[i]);
       if(is_linked(portals[i]) && sidexz3v(offset_pos, portals[i]->normal, x, z)*sidexz3v(offset_pos, portals[i]->normal, new_x, new_z) <= 0) {
 
-        // Calculate the intersection parameter on the move vector
         float d = det2f(new_x-x, new_z-z, -portals[i]->normal[2]*portals[i]->width/2, portals[i]->normal[0]*portals[i]->width/2);
 
         // Calculate the intersection parameter on the portal
