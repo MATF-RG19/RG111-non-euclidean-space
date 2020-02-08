@@ -1,145 +1,140 @@
-#include <assert.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
 #include "image.h"
 
-Image *image_init(int width, int height) {
+image *init_image() {
+  image *img;
 
-  Image *image;
+  // Allocate space for the image
+  img = (image *)malloc(sizeof(image));
+  assert(img != NULL);
 
-  /* U slucaju greske prekida se program. */
-  assert(width >= 0 && height >= 0);
-
-  /* Alocira se prostor za smestanje clanova strukture. */
-  image = (Image *) malloc(sizeof(Image));
-  assert(image != NULL);
-
-  /* Inicijlizuju se clanovi strukture. */
-  image->width = width;
-  image->height = height;
-  if (width == 0 || height == 0)
-    image->pixels = NULL;
-  else {
-    image->pixels = (char *)malloc(3 * width * height * sizeof(char));
-    assert(image->pixels != NULL);
-  }
-
-  /* Vraca se pokazivac na inicijlizovanu strukturu. */
-  return image;
+  return img;
 }
 
-void image_done(Image *image) {
-
-  /*
-   * Oslobadja se prostor za cuvanje podataka o pikselima
-   * a potom se oslobadja i prostor u kojem su cuvani
-   * podaci same strukture.
-   */
-  free(image->pixels);
-  free(image);
+void free_image(image *img) {
+  free(img->pixels);
+  free(img);
 }
 
-void image_read(Image *image, char *filename) {
-
+/*
+ *  pack_alignment is the GL_UNPACK_ALIGNMENT value while drawing the image
+ *  The GL_UNPACK_ALIGNMENT value is set using the glPixelStorei function
+ *  and can be retrieved using glGetIntegerv(GL_UNPACK_ALIGNMENT, &value)
+ *  if you aren't changing this value, the default is 4
+ */
+void read_image(image *img, char *filename, int pack_alignment) {
   FILE *file;
-  BITMAPFILEHEADER bfh;
-  BITMAPINFOHEADER bih;
-  unsigned int i;
+  BITMAP_FILE_HEADER bfh;
+  BITMAP_DIB_HEADER bdh;
   unsigned char r, g, b, a;
 
-  /* Brise se prethodni sadrzaj strukture Image. */
-  free(image->pixels);
-  image->pixels = NULL;
+  if(pack_alignment != 1 && pack_alignment != 2 && pack_alignment != 4 && pack_alignment != 8) {
+    fprintf(stderr, "Invalid alignment: %d\n", pack_alignment);
+    exit(EXIT_FAILURE);
+  }
 
-  /* Otvara se fajl koji sadrzi sliku u binarnom rezimu. */
-  assert((file = fopen(filename, "rb")) != NULL);
+  // Free previous pixel data
+  free(img->pixels);
+  img->pixels = NULL;
 
-  /* Ocitavaju se podaci prvog zaglavlja. */
+  // Open the image for reading
+  file = fopen(filename, "rb");
+  assert(file != NULL);
+
+  // Read the file header
   fread(&bfh.type, 2, 1, file);
+  assert(bfh.type == 0x4d42); // Make sure the format is correct
   fread(&bfh.size, 4, 1, file);
   fread(&bfh.reserved1, 2, 1, file);
   fread(&bfh.reserved2, 2, 1, file);
-  fread(&bfh.offsetbits, 4, 1, file);
+  fread(&bfh.offset, 4, 1, file);
 
-  /* Ocitavaju se podaci drugog zaglavlja. */
-  fread(&bih.size, 4, 1, file);
-  fread(&bih.width, 4, 1, file);
-  fread(&bih.height, 4, 1, file);
-  fread(&bih.planes, 2, 1, file);
-  fread(&bih.bitcount, 2, 1, file);
-  fread(&bih.compression, 4, 1, file);
-  fread(&bih.sizeimage, 4, 1, file);
-  fread(&bih.xpelspermeter, 4, 1, file);
-  fread(&bih.ypelspermeter, 4, 1, file);
-  fread(&bih.colorsused, 4, 1, file);
-  fread(&bih.colorsimportant, 4, 1, file);
+  // Read the DIB header
+  fread(&bdh.size, 4, 1, file);
+  fread(&bdh.width, 4, 1, file);
+  fread(&bdh.height, 4, 1, file);
+  fread(&bdh.planes, 2, 1, file);
+  fread(&bdh.colordepth, 2, 1, file);
+  fread(&bdh.compression, 4, 1, file);
+  fread(&bdh.sizeimage, 4, 1, file);
+  fread(&bdh.xppm, 4, 1, file);
+  fread(&bdh.yppm, 4, 1, file);
+  fread(&bdh.colors, 4, 1, file);
+  fread(&bdh.colorsimportant, 4, 1, file);
 
-  /*
-   * Slike generisane pomocu GIMP-a imaju dodatnih 16 bajtova
-   * Ovo radi samo za teksture generisane kao RGBA bez color space informacija
-   */
-  fseek(file, 16, SEEK_CUR);
+  // Seek to the beginning of the pixel data, pointed to by bfh.offset
+  fseek(file, bfh.offset, SEEK_SET);
 
-  /*
-   * Od podataka iz drugog zaglavlja koristimo samo informacije
-   * o dimenzijama slike.
-   */
-  image->width = bih.width;
-  image->height = bih.height;
+  // Initialize the width and height
+  img->width = bdh.width;
+  img->height = bdh.height;
 
-  /*
-   * U zavisnosti od toga koliko bitova informacija se cita po pikselu
-   * (da li samo R, G i B komponenta ili R, G, B i A), alociramo niz
-   * odgovarajuce duzine.
-   */
-  if (bih.bitcount == 24)
-    image->pixels = (char *)malloc(3 * bih.width * bih.height * sizeof(char));
-  else if (bih.bitcount == 32)
-    image->pixels = (char *)malloc(4 * bih.width * bih.height * sizeof(char));
-  else {
-    fprintf(stderr, "image_read(): Podrzane su samo slike koje po pikselu cuvaju 24 ili 32 bita podataka.\n");
-    exit(1);
+  // Each scanline in a bitmap is aligned to the next address divisible by 4
+  // So we need to skip those bytes
+  unsigned int padding = (4 - (bdh.width * (bdh.colordepth / 8) % 4)) % 4;
+
+  // OpenGL can specify the alignment requirements for the start of each pixel row in memory
+  // This is done by setting GL_UNPACK_ALIGNMENT using the glPixelStorei function
+  // Allowed values are 1, 2, 4 and 8 (default is 4)
+  unsigned int alignment = (pack_alignment - (bdh.width * (bdh.colordepth / 8) % pack_alignment)) % pack_alignment;
+
+  // Read the pixel array
+  if (bdh.colordepth == 24) {
+    img->pixels = (char *)malloc(3 * bdh.width * bdh.height * sizeof(char) + alignment * bdh.height);
+  } else if (bdh.colordepth == 32) {
+    padding = 0;
+    img->pixels = (char *)malloc(4 * bdh.width * bdh.height * sizeof(char) + alignment * bdh.height);
+  } else {
+    fprintf(stderr, "Unsupported bitmap type. Only 24 or 32 bits per pixel allowed\n");
+    exit(EXIT_FAILURE);
   }
-  assert(image->pixels != NULL);
+  assert(img->pixels != NULL);
 
-  /* Ucitavaju se podaci o pikselima i smestaju u alocirani niz. */
-  if (bih.bitcount == 24)
-    /*
-     * Ako se po pikselu cita 24 bita = 3 bajta informacija, pretpostavljamo
-     * da oni (ta 3 bajta) predstavljaju R, G i B komponentu boje (1 bajt po
-     * komponenti).
-     */
-    for (i = 0; i < bih.width * bih.height; i++) {
-      /*
-       * Ovo mozda izgleda cudno, to sto se komponente boje citaju u suprotnom redosledu,
-       * tj. prvo plava, pa zelena, pa crvena, ali tako pise u specifikaciji bmp formata.
-       */
-      fread(&b, sizeof(char), 1, file);
-      fread(&g, sizeof(char), 1, file);
-      fread(&r, sizeof(char), 1, file);
+  unsigned int i, j;
+  unsigned int index = 0;
+  if (bdh.colordepth == 24) {
+    for (i = 0; i < bdh.height; i++) {
+      for (j = 0; j < bdh.width; j++) {
+        // Read the colors in order: B, G, R
+        fread(&b, sizeof(char), 1, file);
+        fread(&g, sizeof(char), 1, file);
+        fread(&r, sizeof(char), 1, file);
 
-      image->pixels[3 * i] = r;
-      image->pixels[3 * i + 1] = g;
-      image->pixels[3 * i + 2] = b;
+        img->pixels[index + 0] = r;
+        img->pixels[index + 1] = g;
+        img->pixels[index + 2] = b;
+        index += 3;
+      }
+      fseek(file, padding, SEEK_CUR);
+      for(j = 0; j < alignment; j++) {
+        img->pixels[index + j] = 0;
+      }
+      index += alignment;
     }
-  else if (bih.bitcount == 32)
-    /*
-     * Ako se po pikselu cita 32 bita = 4 bajta informacija, pretpostavljamo
-     * da oni (ta 4 bajta) predstavljaju R, G, B i A komponentu boje (1 bajt po
-     * komponenti).
-     */
-    for (i = 0; i < bih.width * bih.height; i++) {
-      fread(&b, sizeof(char), 1, file);
-      fread(&g, sizeof(char), 1, file);
-      fread(&r, sizeof(char), 1, file);
-      fread(&a, sizeof(char), 1, file);
+  } else if (bdh.colordepth == 32) {
+    for (i = 0; i < bdh.height; i++) {
+      for (j = 0; j < bdh.width; j++) {
+        // Read the colors in order: B, G, R, A
+        fread(&b, sizeof(char), 1, file);
+        fread(&g, sizeof(char), 1, file);
+        fread(&r, sizeof(char), 1, file);
+        fread(&a, sizeof(char), 1, file);
 
-      image->pixels[4 * i] = r;
-      image->pixels[4 * i + 1] = g;
-      image->pixels[4 * i + 2] = b;
-      image->pixels[4 * i + 3] = a;
+        img->pixels[index + 0] = r;
+        img->pixels[index + 1] = g;
+        img->pixels[index + 2] = b;
+        img->pixels[index + 3] = a;
+        index += 4;
+      }
+      for(j = 0; j < alignment; j++) {
+        img->pixels[index + j] = 0;
+      }
+      index += alignment;
     }
+  }
 
-  /* Zatvara se fajl. */
   fclose(file);
 }
