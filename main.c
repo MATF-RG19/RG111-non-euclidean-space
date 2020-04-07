@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <math.h>
-#include <limits.h>
 #include <GL/glut.h>
 
 #include "shared.h"
@@ -13,7 +11,7 @@
 #include "wall.h"
 #include "logic.h"
 #include "bitmaps.h"
-#include "image.h"
+#include "render.h"
 #include "level.h"
 
 // Player Position
@@ -72,34 +70,7 @@ int main(int argc, char** argv) {
   glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
   // Load textures
-  glGenTextures(2, textures);
-
-  int alignment;
-  glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment);
-
-  image *image = init_image();
-
-  read_image(image, "resources/wall_dark.bmp", alignment);
-
-  glBindTexture(GL_TEXTURE_2D, textures[0]);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image->width, image->height, 0, GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
-
-  read_image(image, "resources/wall_light.bmp", alignment);
-
-  glBindTexture(GL_TEXTURE_2D, textures[1]);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image->width, image->height, 0, GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
-
-  free_image(image);
-
-  glBindTexture(GL_TEXTURE_2D, 0);
+  load_textures();
 
   // Set the pixel storage mode for bitmaps
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -186,80 +157,8 @@ static void on_timer(int data) {
   if(x != new_x || z != new_z) {
     should_rerender = true;
 
-    // Check if the player should be teleported
-    for(unsigned int i = 0; i < portal_count; i++) {
-      if(portals[i] == NULL)
-        continue;
-
-      // If the portal is linked and we passed the portal plane
-      float *offset_pos = get_offset_position(portals[i]);
-      if(is_linked(portals[i]) && sidexz3v(offset_pos, portals[i]->normal, x, z)*sidexz3v(offset_pos, portals[i]->normal, new_x, new_z) <= 0) {
-
-        float d = det2f(new_x-x, new_z-z, -portals[i]->normal[2]*portals[i]->width/2, portals[i]->normal[0]*portals[i]->width/2);
-
-        // Calculate the intersection parameter on the portal
-        float s = det2f(offset_pos[0]-x, offset_pos[2]-z, new_x-x, new_z-z)/d;
-
-        // Check if the player went through the portal, otherwise continue
-        if(fabs(s) >= 1) {
-          free(offset_pos);
-          continue;
-        }
-
-        // Calculate the intersection parameter on the player move vector
-        float t = det2f(offset_pos[0]-x, offset_pos[2]-z, -portals[i]->normal[2]*portals[i]->width/2, portals[i]->normal[0]*portals[i]->width/2)/d;
-
-        // Calculate the yaw change
-        float angle = angle_between2f(-portals[i]->normal[0], -portals[i]->normal[2], portals[i]->link->normal[0], portals[i]->link->normal[2]);
-
-        // Move the player
-        float offset_x = (new_x-x)*(1.0f-t);
-        float offset_z = (new_z-z)*(1.0f-t);
-
-        new_x = portals[i]->link->position[0] + portals[i]->link->normal[0]*0.1f + portals[i]->link->normal[2]*portals[i]->link->width/2*s;
-        new_y = portals[i]->link->position[1] - portals[i]->position[1] + y;
-        new_z = portals[i]->link->position[2] + portals[i]->link->normal[2]*0.1f - portals[i]->link->normal[0]*portals[i]->link->width/2*s;
-
-        new_x += cos(angle)*offset_x - sin(angle)*offset_z;
-        new_z += sin(angle)*offset_x + cos(angle)*offset_z;
-
-        // Update player rotation
-        yaw = clamp_yaw(yaw + angle);
-
-        free(offset_pos);
-        break;
-      }
-
-      free(offset_pos);
-    }
-
-    x = new_x;
-    y = new_y;
-    z = new_z;
-
-    // Check collisions
-    float dist = 0;
-    // Is the player hitting a wall
-    for(unsigned int i = 0; i < wall_count; i++) {
-      if(is_colliding_with_wall(x, z, walls[i], &dist)) {
-        // And is there not a portal there
-        bool in_portal = false;
-        for(unsigned int j = 0; j < portal_count; j++) {
-          if(portals[j] == NULL || portals[j]->wall != walls[i])
-            continue;
-
-          if(is_linked(portals[j]) && is_colliding_with_portal(x, y, z, portals[j])) {
-            in_portal = true;
-            break;
-          }
-        }
-        if(!in_portal) {
-          // Move the player back
-          x = x + (PLAYER_COLLISION_RADIUS-dist)*walls[i]->normal[0];
-          z = z + (PLAYER_COLLISION_RADIUS-dist)*walls[i]->normal[2];
-        }
-      }
-    }
+    check_teleportation(&x, &y, &z, new_x, new_y, new_z, &yaw);
+    check_collisions(&x, &y, &z);
   }
 
   update_camera();
@@ -288,77 +187,12 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
     return;
 
   // Free the previous portal
-  if(button == 0)
+  if(button == 0) {
     free_user_portal(BLUE);
-  else if(button == 2)
+    place_portal(x, y, z, look_x, look_y, look_z, BLUE);
+  } else if(button == 2) {
     free_user_portal(ORANGE);
-
-  // Find the closest wall the player is looking at
-  float t = INT_MAX;
-  wall *w = NULL;
-  float dist_horizontal = 0;
-
-  for(unsigned int i = 0; i < wall_count; i++) {
-    // Make sure the player is facing the front side of the wall
-    if(sidexz3v(walls[i]->position, walls[i]->normal, x, z) != 1)
-      continue;
-
-    // If the look vector is parallel to the wall there is no intersection
-    float d = dot_prod3f(look_x, look_y, look_z, walls[i]->normal[0], walls[i]->normal[1], walls[i]->normal[2]);
-    if(d == 0)
-      continue;
-
-    // Calculate the intersection parameter
-    float nt = -(dot_prod3f(x, y, z, walls[i]->normal[0], walls[i]->normal[1], walls[i]->normal[2])+(-walls[i]->normal[0]*walls[i]->position[0]-walls[i]->normal[1]*walls[i]->position[1]-walls[i]->normal[2]*walls[i]->position[2]))/d;
-
-    // We don't care about walls behind the player
-    if(nt<=0)
-      continue;
-
-    // Check if the intersection is inside the wall
-    float dist_h = sqrt((x+look_x*nt-walls[i]->position[0])*(x+look_x*nt-walls[i]->position[0])+(z+look_z*nt-walls[i]->position[2])*(z+look_z*nt-walls[i]->position[2]));
-    float dist_v = y+look_y*nt-walls[i]->position[1];
-
-    if(fabs(dist_h)>walls[i]->width/2 || fabs(dist_v)>walls[i]->height/2)
-      continue;
-
-    // If the current wall is closer use it instead
-    if(nt < t) {
-      t = nt;
-      w = walls[i];
-      dist_horizontal = dist_h;
-    }
-  }
-
-  // Check if there was an intersection point
-  if(t != INT_MAX) {
-    // Clamp position on x and z axes
-    float nx = x+look_x*t;
-    float nz = z+look_z*t;
-    if(fabs(dist_horizontal)>w->width/2-PORTAL_WIDTH/2) {
-      dist_horizontal = clamp(dist_horizontal, -w->width/2+PORTAL_WIDTH/2, w->width/2-PORTAL_WIDTH/2);
-      nx = w->position[0]+sgn(x+look_x*t-w->position[0])*dist_horizontal*w->normal[2];
-      nz = w->position[2]+sgn(z+look_z*t-w->position[2])*dist_horizontal*w->normal[0];
-    }
-
-    // Clamp position on y axis
-    float ny = clamp(y+look_y*t, w->position[1]-w->height/2+PORTAL_HEIGHT/2, w->position[1]+w->height/2-PORTAL_HEIGHT/2);
-
-    // Check if there is another portal at that position
-    bool should_create_portal = true;
-    for(unsigned int i = 0; i < portal_count; i++) {
-      if(portals[i] != NULL && portals[i]->wall == w && sqrt(fabs(nx-portals[i]->position[0])*fabs(nx-portals[i]->position[0])+fabs(nz-portals[i]->position[2])*fabs(nz-portals[i]->position[2]))<portals[i]->width/2+PORTAL_WIDTH/2) {
-        should_create_portal = false;;
-      }
-    }
-
-    if(should_create_portal) {
-      // Create the portal on the closest wall
-      if(button == 0)
-        create_user_portal(BLUE, nx, ny, nz, w);
-      else if(button == 2)
-        create_user_portal(ORANGE, nx, ny, nz, w);
-    }
+    place_portal(x, y, z, look_x, look_y, look_z, ORANGE);
   }
 
   glutPostRedisplay();
@@ -420,7 +254,7 @@ void draw_scene(int level) {
       glPushMatrix();
 
         // Add a clipping plane so we don't render objects behind the destination portal
-        if(level<GL_MAX_CLIP_PLANE) {
+        if(level<GL_MAX_CLIP_PLANES) {
           double clip_plane[] = {
             -p.normal[0], -p.normal[1], -p.normal[2],
             p.normal[0]*p.position[0] + p.normal[1]*p.position[1] + p.normal[2]*p.position[2]
@@ -448,7 +282,7 @@ void draw_scene(int level) {
           draw_scene(level + 1);
         }
 
-        if(level<GL_MAX_CLIP_PLANE) {
+        if(level<GL_MAX_CLIP_PLANES) {
           glDisable(GL_CLIP_PLANE0+level);
         }
 
@@ -576,8 +410,7 @@ static void on_reshape(int width, int height) {
 }
 
 static void on_close(void) {
-  glDeleteTextures(2, textures);
-
+  free_textures();
   free_portals();
   free_walls();
 }
