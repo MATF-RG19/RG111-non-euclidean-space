@@ -420,12 +420,16 @@ void draw_scene(int level) {
       glPushMatrix();
 
         // Add a clipping plane so we don't render objects behind the destination portal
-        double clip_plane[] = {
-          -p.normal[0], -p.normal[1], -p.normal[2],
-          p.normal[0]*p.position[0] + p.normal[1]*p.position[1] + p.normal[2]*p.position[2]
-        };
-        glClipPlane(GL_CLIP_PLANE0, clip_plane);
-        glEnable(GL_CLIP_PLANE0);
+        if(level<GL_MAX_CLIP_PLANE) {
+          double clip_plane[] = {
+            -p.normal[0], -p.normal[1], -p.normal[2],
+            p.normal[0]*p.position[0] + p.normal[1]*p.position[1] + p.normal[2]*p.position[2]
+          };
+
+          // Note GL_CLIP_PLANEi = GL_CLIP_PLANE0 + i
+          glClipPlane(GL_CLIP_PLANE0 + level, clip_plane);
+          glEnable(GL_CLIP_PLANE0 + level);
+        }
 
         // Flip the camera
         glRotatef(180, 0, 1, 0);
@@ -444,7 +448,9 @@ void draw_scene(int level) {
           draw_scene(level + 1);
         }
 
-        glDisable(GL_CLIP_PLANE0);
+        if(level<GL_MAX_CLIP_PLANE) {
+          glDisable(GL_CLIP_PLANE0+level);
+        }
 
       glPopMatrix();
     } else {
