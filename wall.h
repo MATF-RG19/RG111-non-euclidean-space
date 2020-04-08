@@ -7,6 +7,7 @@
 
 #include "shared.h"
 #include "light.h"
+#include "render.h"
 #include "util.h"
 
 typedef struct wall {

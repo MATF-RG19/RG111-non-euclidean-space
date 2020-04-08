@@ -1,5 +1,4 @@
 #include "level.h"
-#include "render.h"
 
 // Lights
 static GLfloat main_light_position[] = { 0, 5, 0, 1 };
@@ -85,6 +84,12 @@ extern void draw_world() {
   glPushMatrix();
     glTranslatef(5.0f, 0.0f, 5.0f);
     draw_cake();
+  glPopMatrix();
+
+  // Draw the companion cube
+  glPushMatrix();
+    glTranslatef(7.0f, 0.0f, -7.0f);
+    draw_companion_cube();
   glPopMatrix();
 
   glDisable(GL_CULL_FACE);
