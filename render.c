@@ -11,27 +11,27 @@ extern void load_textures() {
 
   image *image = init_image();
 
-  read_image(image, TEXTURE_WALL_DARK, alignment);
+  read_image(image, TEXTURE_PATH_WALL_DARK, alignment);
 
-  glBindTexture(GL_TEXTURE_2D, textures[0]);
+  glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_WALL_DARK]);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image->width, image->height, 0, GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
 
-  read_image(image, TEXTURE_WALL_LIGHT, alignment);
+  read_image(image, TEXTURE_PATH_WALL_LIGHT, alignment);
 
-  glBindTexture(GL_TEXTURE_2D, textures[1]);
+  glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_WALL_LIGHT]);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image->width, image->height, 0, GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
 
-  read_image(image, TEXTURE_HEART, alignment);
+  read_image(image, TEXTURE_PATH_HEART, alignment);
 
-  glBindTexture(GL_TEXTURE_2D, textures[2]);
+  glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_HEART]);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -45,6 +45,118 @@ extern void load_textures() {
 
 extern void free_textures() {
   glDeleteTextures(NUM_TEXTURES, textures);
+}
+
+void draw_cylinder(float radius, float length, int points) {
+  glBegin(GL_QUAD_STRIP);
+    for(int i = 0; i < points; i++) {
+      glNormal3f(0, cos((float)i/points*2*PI), sin((float)i/points*2*PI));
+      glVertex3f(0, -radius*cos((float)i/points*2*PI), radius*sin((float)i/points*2*PI));
+      glVertex3f(length, -radius*cos((float)i/points*2*PI), radius*sin((float)i/points*2*PI));
+    }
+    glNormal3f(0, -radius, 0);
+    glVertex3f(0, -radius, 0);
+    glVertex3f(length, -radius, 0);
+  glEnd();
+  glNormal3f(-1, 0, 0);
+  glBegin(GL_TRIANGLE_FAN);
+    for(int i = 0; i < points; i++) {
+      glVertex3f(0, -radius*cos((float)i/points*2*PI), radius*sin((float)i/points*2*PI));
+    }
+  glEnd();
+  glNormal3f(1, 0, 0);
+  glBegin(GL_TRIANGLE_FAN);
+    for(int i = 0; i < points; i++) {
+      glVertex3f(length, radius*cos((float)i/points*2*PI), radius*sin((float)i/points*2*PI));
+    }
+  glEnd();
+}
+
+void draw_circle(float radius, int points) {
+  glNormal3f(1, 0, 0);
+  glBegin(GL_TRIANGLE_FAN);
+  for(int i = 0; i < points; i++) {
+    glVertex3f(0, radius*cos((float)i/points*2*PI), radius*sin((float)i/points*2*PI));
+  }
+  glEnd();
+}
+
+extern void draw_portal_gun() {
+  glEnable(GL_COLOR_MATERIAL);
+
+  glPushMatrix();
+    // Primary base
+    glColor3f(0.8f, 0.8f, 0.8f);
+    glPushMatrix();
+      glScalef(0.18f, 0.12f, 0.12f);
+      glutSolidSphere(1, 20, 20);
+    glPopMatrix();
+
+    // Power indicator
+    glColor3f(0.1f, 0.5f, 0.9f);
+    glPushMatrix();
+      glTranslatef(0, 0.1f, 0);
+      glScalef(0.03, 0.03f, 0.03f);
+      glutSolidSphere(1, 10, 10);
+    glPopMatrix();
+
+    // Secondary base
+    glColor3f(0.8f, 0.8f, 0.8f);
+    glPushMatrix();
+      glTranslatef(0.32f, -0.06f, 0);
+      glScalef(0.11f, 0.07f, 0.12f);
+      glutSolidSphere(1, 20, 20);
+    glPopMatrix();
+
+    // Power
+    glColor3f(0.1f, 0.5f, 0.9f);
+    glPushMatrix();
+      glTranslatef(0.15f, 0, 0);
+      draw_cylinder(0.05f, 0.2f, 20);
+    glPopMatrix();
+
+    // Barrels
+    glPushMatrix();
+      glColor3f(0.2f, 0.2f, 0.2f);
+      glTranslatef(0.35f, 0, 0);
+      draw_cylinder(0.08f, 0.06f, 20);
+
+      glColor3f(0.3f, 0.3f, 0.3f);
+      glTranslatef(0.06f, 0, 0);
+      glScalef(0.7f, 0.7f, 0.7f);
+      draw_cylinder(0.08f, 0.03f, 20);
+    glPopMatrix();
+
+    // Base connector
+    glColor3f(0.2f, 0.2f, 0.2f);
+    glPushMatrix();
+      glTranslatef(0.2f, -0.05f, 0);
+      glScalef(0.2f, 0.04f, 0.08f);
+      glutSolidCube(1);
+    glPopMatrix();
+
+    // Hands
+    glColor3f(0.2f, 0.2f, 0.2f);
+    for(int i = 0; i < 3; i++) {
+      glPushMatrix();
+        glRotatef((float)i/3*360, 1, 0, 0);
+        glTranslatef(0.37f, 0.07f, 0);
+        glRotatef(-50, 0, 0, 1);
+        glPushMatrix();
+          glTranslatef(0, 0.14f, 0);
+          glRotatef(-50, 0, 0, 1);
+          glTranslatef(0, 0.04f, 0);
+          glScalef(0.02f, 0.1f, 0.02f);
+          glutSolidCube(1);
+        glPopMatrix();
+        glTranslatef(0, 0.07f, 0);
+        glScalef(0.02f, 0.14f, 0.02f);
+        glutSolidCube(1);
+      glPopMatrix();
+    }
+  glPopMatrix();
+
+  glDisable(GL_COLOR_MATERIAL);
 }
 
 extern void draw_companion_cube() {
@@ -176,44 +288,15 @@ extern void draw_companion_cube() {
 
     // Faces
     glColor3f(0.6f , 0.6f, 0.6f);
+    for(int i = 0; i < 4; i++) {
+      glPushMatrix();
+        glRotatef(i*90, 0, 1, 0);
+        glTranslatef(0.31f, 0, 0);
+        draw_circle(0.14f, 20);
+      glPopMatrix();
+    }
 
-    glPushMatrix();
-      glTranslatef(0.31f, 0, 0);
-      glBegin(GL_TRIANGLE_FAN);
-      for(int i = 0; i < 15; i++) {
-        glVertex3f(0, 0.14*cos((float)i/15*2*PI), 0.14*sin((float)i/15*2*PI));
-      }
-      glEnd();
-    glPopMatrix();
-
-    glPushMatrix();
-      glTranslatef(0, 0, 0.31f);
-      glBegin(GL_TRIANGLE_FAN);
-      for(int i = 0; i < 15; i++) {
-        glVertex3f(0.14*sin((float)i/15*2*PI), -0.14*cos((float)i/15*2*PI), 0);
-      }
-      glEnd();
-    glPopMatrix();
-
-    glPushMatrix();
-      glTranslatef(-0.31f, 0, 0);
-      glBegin(GL_TRIANGLE_FAN);
-      for(int i = 0; i < 15; i++) {
-        glVertex3f(0, -0.14*cos((float)i/15*2*PI), 0.14*sin((float)i/15*2*PI));
-      }
-      glEnd();
-    glPopMatrix();
-
-    glPushMatrix();
-      glTranslatef(0, 0, -0.31f);
-      glBegin(GL_TRIANGLE_FAN);
-      for(int i = 0; i < 15; i++) {
-        glVertex3f(0.14*sin((float)i/15*2*PI), 0.14*cos((float)i/15*2*PI), 0);
-      }
-      glEnd();
-    glPopMatrix();
-
-    glBindTexture(GL_TEXTURE_2D, textures[2]);
+    glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_HEART]);
     glColor3f(1, 0, 0);
 
     glBegin(GL_QUADS);

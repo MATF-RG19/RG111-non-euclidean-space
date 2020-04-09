@@ -80,6 +80,14 @@ extern void draw_world() {
     glVertex3f(16.0f, 0, -10.0f);
   glEnd();
 
+  // Draw the portal gun
+  // glPushMatrix();
+  //   glTranslatef(-5.0f, 1.0f, -5.0f);
+  //   glRotatef(-yaw, 0, 1, 0);
+  //   glRotatef(-pitch, 0, 0, 1);
+  //   draw_portal_gun();
+  // glPopMatrix();
+
   // Draw the cake
   glPushMatrix();
     glTranslatef(5.0f, 0.0f, 5.0f);
