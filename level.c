@@ -46,7 +46,13 @@ extern void load_level(double *x, double *y, double *z) {
   *z = -5.0f;
 }
 
-extern void draw_world() {
+extern void draw_world(double x, double y, double z, double yaw, double pitch) {
+  (void) x;
+  (void) y;
+  (void) z;
+  (void) yaw;
+  (void) pitch;
+
   glEnable(GL_CULL_FACE);
   glDisable(GL_LIGHTING);
 
@@ -80,12 +86,10 @@ extern void draw_world() {
     glVertex3f(16.0f, 0, -10.0f);
   glEnd();
 
-  // Draw the portal gun
+  // Draw the player
   // glPushMatrix();
-  //   glTranslatef(-5.0f, 1.0f, -5.0f);
-  //   glRotatef(-yaw, 0, 1, 0);
-  //   glRotatef(-pitch, 0, 0, 1);
-  //   draw_portal_gun();
+  //   glTranslatef(-5.0f, 0, -5.0f);
+  //   draw_player(yaw, pitch);
   // glPopMatrix();
 
   // Draw the cake

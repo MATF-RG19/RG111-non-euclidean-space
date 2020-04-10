@@ -106,7 +106,7 @@ static void on_timer(int data) {
   if(data != 0)
     return;
 
-  static bool should_rerender = true;
+  static bool should_rerender = false;
 
   if(mouse_dx != 0 || mouse_dy != 0)
     should_rerender = true;
@@ -159,8 +159,19 @@ static void on_timer(int data) {
   if(x != new_x || z != new_z) {
     should_rerender = true;
 
+    player_animatation = true;
+    player_animation_param += 0.001;
+    if(player_animation_param > 1)
+      player_animation_param -= 1;
+
     check_teleportation(&x, &y, &z, new_x, new_y, new_z, &yaw);
     check_collisions(&x, &y, &z);
+  } else {
+    if(player_animatation)
+      should_rerender = true;
+
+    player_animatation = false;
+    player_animation_param = 0;
   }
 
   update_camera();
@@ -278,7 +289,7 @@ void draw_scene(int level) {
 
         if(level == MAX_RECURSION_LEVEL) {
           // Draw the view without portals
-          draw_world();
+          draw_world(x, y, z, yaw, pitch);
         } else {
           // Draw the view recursively from the current portal
           draw_scene(level + 1);
@@ -339,7 +350,7 @@ void draw_scene(int level) {
   // Render the world from the players perspective
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-  draw_world();
+  draw_world(x, y, z, yaw, pitch);
 
   glDisable(GL_STENCIL_TEST);
 }
@@ -392,6 +403,17 @@ static void on_display(void) {
   gluLookAt(x, y, z, x + look_x, y + look_y, z + look_z, 0.0f, 1.0f, 0.0f);
 
   draw_scene(0);
+
+  glClear(GL_DEPTH_BUFFER_BIT);
+
+  glPushMatrix();
+    glTranslatef(x, y, z);
+    glRotatef(-yaw, 0, 1, 0);
+    glRotatef(-pitch, 0, 0, 1);
+    glTranslatef(0.05f, -0.05f, 0.1f);
+    glScalef(0.3f, 0.3f, 0.3f);
+    draw_portal_gun();
+  glPopMatrix();
 
   draw_hud();
 

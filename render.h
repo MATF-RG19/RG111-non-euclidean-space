@@ -1,6 +1,7 @@
 #ifndef RENDER_H_
 #define RENDER_H_
 
+#include <stdbool.h>
 #include <math.h>
 
 #include "shared.h"
@@ -18,9 +19,13 @@
 
 extern GLuint textures[NUM_TEXTURES];
 
+extern bool player_animatation;
+extern double player_animation_param;
+
 extern void load_textures();
 extern void free_textures();
 
+extern void draw_player(double yaw, double pitch);
 extern void draw_portal_gun();
 extern void draw_companion_cube();
 extern void draw_cake();

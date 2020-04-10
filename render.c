@@ -47,7 +47,7 @@ extern void free_textures() {
   glDeleteTextures(NUM_TEXTURES, textures);
 }
 
-void draw_cylinder(float radius, float length, int points) {
+static void draw_cylinder(float radius, float length, int points) {
   glBegin(GL_QUAD_STRIP);
     for(int i = 0; i < points; i++) {
       glNormal3f(0, cos((float)i/points*2*PI), sin((float)i/points*2*PI));
@@ -72,7 +72,7 @@ void draw_cylinder(float radius, float length, int points) {
   glEnd();
 }
 
-void draw_circle(float radius, int points) {
+static void draw_circle(float radius, int points) {
   glNormal3f(1, 0, 0);
   glBegin(GL_TRIANGLE_FAN);
   for(int i = 0; i < points; i++) {
@@ -81,8 +81,92 @@ void draw_circle(float radius, int points) {
   glEnd();
 }
 
+extern bool player_animatation = false;
+extern double player_animation_param = 0;
+
+extern void draw_player(double yaw, double pitch) {
+  bool color_material = glIsEnabled(GL_COLOR_MATERIAL);
+  if(!color_material)
+    glEnable(GL_COLOR_MATERIAL);
+
+  glRotatef(-yaw, 0, 1, 0);
+
+  // Head
+  glColor3f(0.9f, 0.8f, 0.7f);
+  glPushMatrix();
+    glTranslatef(0, 1, 0);
+    glScalef(0.2f, 0.2f, 0.2f);
+    glutSolidSphere(0.5f, 20, 20);
+  glPopMatrix();
+
+  // Body
+  glColor3f(0.1f, 0.5f, 0.6f);
+  glPushMatrix();
+    glTranslatef(0, 0.675f, 0);
+    glScalef(0.2f, 0.45f, 0.26f);
+    glutSolidCube(1);
+  glPopMatrix();
+
+  // Legs
+  glColor3f(0.1f, 0.1f, 1.0f);
+  glPushMatrix();
+    glTranslatef(0, 0.45f, -0.075f);
+    glRotatef(60*sin(360*player_animation_param), 0, 0, 1);
+    glTranslatef(0, -0.225f, 0);
+    glScalef(0.1f, 0.45f, 0.1f);
+    glutSolidCube(1);
+  glPopMatrix();
+
+  glColor3f(0.1f, 0.1f, 1.0f);
+  glPushMatrix();
+    glTranslatef(0, 0.45f, 0.075f);
+    glRotatef(-60*sin(360*player_animation_param), 0, 0, 1);
+    glTranslatef(0, -0.225f, 0);
+    glScalef(0.1f, 0.45f, 0.1f);
+    glutSolidCube(1);
+  glPopMatrix();
+
+  // Arms
+  glColor3f(0.1f, 0.5f, 0.6f);
+  glPushMatrix();
+    glTranslatef(0, 0.8f, 0.17f);
+    glRotatef(-pitch, 0, 0, 1);
+    glRotatef(10, 0, 1, 0);
+
+    glPushMatrix();
+      glRotatef(80, 0, 0, 1);
+      glTranslatef(0, -0.15f, 0);
+      glScalef(0.08f, 0.3f, 0.08f);
+      glutSolidCube(1);
+    glPopMatrix();
+
+    glPushMatrix();
+      glTranslatef(0.35f, 0, 0);
+      glTranslatef(-0.1f, 0, 0);
+      glScalef(0.7f, 0.7f, 0.7f);
+      draw_portal_gun();
+    glPopMatrix();
+  glPopMatrix();
+
+  glColor3f(0.1f, 0.5f, 0.6f);
+  glPushMatrix();
+    glTranslatef(0.05f, 0.8f, -0.17f);
+    glRotatef(-pitch, 0, 0, 1);
+    glRotatef(-40, 0, 1, 0);
+    glRotatef(80, 0, 0, 1);
+    glTranslatef(0, -0.15f, 0);
+    glScalef(0.08f, 0.3f, 0.08f);
+    glutSolidCube(1);
+  glPopMatrix();
+
+  if(!color_material)
+    glDisable(GL_COLOR_MATERIAL);
+}
+
 extern void draw_portal_gun() {
-  glEnable(GL_COLOR_MATERIAL);
+  bool color_material = glIsEnabled(GL_COLOR_MATERIAL);
+  if(!color_material)
+    glEnable(GL_COLOR_MATERIAL);
 
   glPushMatrix();
     // Primary base
@@ -156,11 +240,14 @@ extern void draw_portal_gun() {
     }
   glPopMatrix();
 
-  glDisable(GL_COLOR_MATERIAL);
+  if(!color_material)
+    glDisable(GL_COLOR_MATERIAL);
 }
 
 extern void draw_companion_cube() {
-  glEnable(GL_COLOR_MATERIAL);
+  bool color_material = glIsEnabled(GL_COLOR_MATERIAL);
+  if(!color_material)
+    glEnable(GL_COLOR_MATERIAL);
 
   glPushMatrix();
 
@@ -284,7 +371,8 @@ extern void draw_companion_cube() {
       glutSolidCube(0.2f);
     glPopMatrix();
 
-    glDisable(GL_COLOR_MATERIAL);
+    if(!color_material)
+      glDisable(GL_COLOR_MATERIAL);
 
     // Faces
     glColor3f(0.6f , 0.6f, 0.6f);
@@ -363,7 +451,9 @@ extern void draw_companion_cube() {
 }
 
 extern void draw_cake() {
-  glEnable(GL_COLOR_MATERIAL);
+  bool color_material = glIsEnabled(GL_COLOR_MATERIAL);
+  if(!color_material)
+    glEnable(GL_COLOR_MATERIAL);
 
   glPushMatrix();
     // Draw table
@@ -452,5 +542,6 @@ extern void draw_cake() {
 
   glPopMatrix();
 
-  glDisable(GL_COLOR_MATERIAL);
+  if(!color_material)
+    glDisable(GL_COLOR_MATERIAL);
 }
