@@ -86,12 +86,6 @@ extern void draw_world(double x, double y, double z, double yaw, double pitch) {
     glVertex3f(16.0f, 0, -10.0f);
   glEnd();
 
-  // Draw the player
-  // glPushMatrix();
-  //   glTranslatef(-5.0f, 0, -5.0f);
-  //   draw_player(yaw, pitch);
-  // glPopMatrix();
-
   // Draw the cake
   glPushMatrix();
     glTranslatef(5.0f, 0.0f, 5.0f);

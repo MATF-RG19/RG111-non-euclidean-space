@@ -290,6 +290,12 @@ void draw_scene(int level) {
         if(level == MAX_RECURSION_LEVEL) {
           // Draw the view without portals
           draw_world(x, y, z, yaw, pitch);
+          if(DRAW_PLAYER) {
+            glPushMatrix();
+              glTranslatef(x, y-1, z);
+              draw_player(yaw, pitch);
+            glPopMatrix();
+          }
         } else {
           // Draw the view recursively from the current portal
           draw_scene(level + 1);
@@ -351,6 +357,14 @@ void draw_scene(int level) {
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
   draw_world(x, y, z, yaw, pitch);
+
+  // Draw the player on all levels except 0 (the actual world)
+  if(DRAW_PLAYER && level != 0) {
+    glPushMatrix();
+      glTranslatef(x, y-1, z);
+      draw_player(yaw, pitch);
+    glPopMatrix();
+  }
 
   glDisable(GL_STENCIL_TEST);
 }
