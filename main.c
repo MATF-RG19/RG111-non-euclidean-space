@@ -120,14 +120,16 @@ static void on_timer(int data) {
   new_y = y;
   new_z = z;
 
-  // TODO: Normalize move vector
+  // Move the player
   if(is_forward_pressed) {
-    new_x += look_x * PLAYER_SPEED;
-    new_z += look_z * PLAYER_SPEED;
+    float norm = norm2f(look_x, look_z);
+    new_x += look_x / norm * PLAYER_SPEED;
+    new_z += look_z / norm * PLAYER_SPEED;
   }
   if(is_backward_pressed) {
-    new_x -= look_x * PLAYER_SPEED;
-    new_z -= look_z * PLAYER_SPEED;
+    float norm = norm2f(look_x, look_z);
+    new_x -= look_x / norm * PLAYER_SPEED;
+    new_z -= look_z / norm * PLAYER_SPEED;
   }
   if(is_left_pressed) {
     new_x += cos(to_radians(yaw)-PI/2) * PLAYER_SPEED;
