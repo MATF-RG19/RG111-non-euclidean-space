@@ -211,7 +211,7 @@ static void on_mouse_click(int button, int state, int m_x, int m_y) {
   glutPostRedisplay();
 }
 
-void draw_scene(int level) {
+void draw_scene(int level, double px, double pz, double lx, double lz) {
   // Draw user portal borders
   for(unsigned int i = 0; i < portal_count; i++) {
     if(portals[i] == NULL)
@@ -228,6 +228,20 @@ void draw_scene(int level) {
       continue;
 
     p = *portals[i];
+
+    // Optimizations
+    // Don't render portal if it's behind current position (based on looking direction)
+    // Don't render portal if the current position is behind it (based on looking direction)
+    // Don't render portal if the current looking direction is away from it
+    // Note: For level 0 the current position and location is based on the player
+    // For other levels its based on the latest portal we're drawing in
+    if(
+      p.normal[0]*px + p.normal[2]*pz - p.normal[0]*p.position[0] - p.normal[2]*p.position[2] < 0 ||
+      lx*p.position[0] + lz*p.position[2] - lx*px - lz*pz < -p.width/2 ||
+      dot_prod2f(lx, lz, p.normal[0], p.normal[2])>=0.7f
+    ) {
+      continue;
+    }
 
     // Create a mask for the portal in the stencil buffer
     glEnable(GL_STENCIL_TEST);
@@ -298,7 +312,7 @@ void draw_scene(int level) {
           }
         } else {
           // Draw the view recursively from the current portal
-          draw_scene(level + 1);
+          draw_scene(level + 1, p.link->position[0], p.link->position[2], p.link->normal[0], p.link->normal[2]);
         }
 
         if(level<GL_MAX_CLIP_PLANES) {
@@ -416,7 +430,7 @@ static void on_display(void) {
   glLoadIdentity();
   gluLookAt(x, y, z, x + look_x, y + look_y, z + look_z, 0.0f, 1.0f, 0.0f);
 
-  draw_scene(0);
+  draw_scene(0, x, z, look_x, look_z);
 
   glClear(GL_DEPTH_BUFFER_BIT);
 
