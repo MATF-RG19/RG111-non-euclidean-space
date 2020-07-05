@@ -10,6 +10,7 @@
 #define PI 3.14159265359
 #define MOUSE_SENSITIVITY 0.2
 
+#define DRAW_PLAYER true
 #define MAX_RECURSION_LEVEL 2
 
 #define PLAYER_HEIGHT 1.0f
@@ -29,7 +30,5 @@ typedef enum portal_color {
 extern int window_width;
 extern int window_height;
 extern bool fullscreen;
-
-extern GLuint textures[2];
 
 #endif

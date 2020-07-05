@@ -16,9 +16,9 @@ extern void draw_wall(wall *w) {
 extern void draw_textured_wall(wall *w) {
   // Set the wall texture depending on the anchor field
   if(w->anchor)
-    glBindTexture(GL_TEXTURE_2D, textures[1]);
+    glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_WALL_LIGHT]);
   else
-    glBindTexture(GL_TEXTURE_2D, textures[0]);
+    glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_WALL_DARK]);
 
   // Draw a quad at specified position normal to the secified vector
   glBegin(GL_QUADS);

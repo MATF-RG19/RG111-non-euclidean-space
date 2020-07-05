@@ -46,100 +46,13 @@ extern void load_level(double *x, double *y, double *z) {
   *z = -5.0f;
 }
 
-static void draw_cake() {
-  glEnable(GL_COLOR_MATERIAL);
+extern void draw_world(double x, double y, double z, double yaw, double pitch) {
+  (void) x;
+  (void) y;
+  (void) z;
+  (void) yaw;
+  (void) pitch;
 
-  glPushMatrix();
-    // Draw table
-    glColor3f(0.6f, 0.4f, 0.3f);
-
-    glPushMatrix();
-      glTranslatef(0, 0.5f, 0);
-      glScalef(2.0f, 0.1f, 2.0f);
-      glutSolidCube(1);
-    glPopMatrix();
-
-    glPushMatrix();
-      glTranslatef(-0.95f, 0, -0.95f);
-
-      glScalef(0.1f, 0.5f, 0.1f);
-      glTranslatef(0, 0.45f, 0);
-      glutSolidCube(1);
-    glPopMatrix();
-
-    glPushMatrix();
-      glTranslatef(0.95f, 0, -0.95f);
-
-      glScalef(0.1f, 0.5f, 0.1f);
-      glTranslatef(0, 0.45f, 0);
-      glutSolidCube(1);
-    glPopMatrix();
-
-    glPushMatrix();
-      glTranslatef(-0.95f, 0, 0.95f);
-
-      glScalef(0.1f, 0.5f, 0.1f);
-      glTranslatef(0, 0.45f, 0);
-      glutSolidCube(1);
-    glPopMatrix();
-
-    glPushMatrix();
-      glTranslatef(0.95f, 0, 0.95f);
-
-      glScalef(0.1f, 0.5f, 0.1f);
-      glTranslatef(0, 0.45f, 0);
-      glutSolidCube(1);
-    glPopMatrix();
-
-    // Draw cake
-    glColor3f(0.2f, 0.1f, 0.0f);
-
-    glPushMatrix();
-      glTranslatef(0, 0.8f, 0);
-      glRotatef(90, 1, 0, 0);
-      glutSolidCylinder(0.6f, 0.25f, 20, 20);
-    glPopMatrix();
-
-    // Draw decorations
-    glTranslatef(0, 0.8f, 0);
-    for(int i = 0; i < 8; i++) {
-      glPushMatrix();
-
-      glColor3f(0.5f, 0.2f, 0.2f);
-      glTranslatef(0.45f*cos(i*PI/4.0f), 0.0125f, 0.45f*sin(i*PI/4.0f));
-      glutSolidSphere(0.06f, 10, 10);
-
-      glColor3f(1.0f, 1.0f, 1.0f);
-      glScalef(1.1f, 0.4f, 1.1f);
-      glutSolidSphere(0.06f, 10, 10);
-
-      glPopMatrix();
-    }
-
-    // Draw candle and flame
-    glColor3f(1.0f, 1.0f, 0.8f);
-
-    glPushMatrix();
-      glTranslatef(0, 0.25f, 0);
-      glRotatef(90, 1, 0, 0);
-      glutSolidCylinder(0.04f, 0.25f, 10, 10);
-    glPopMatrix();
-
-    glColor3f(0.8f, 0.4f, 0.1f);
-
-    glPushMatrix();
-      glTranslatef(0, 0.29f, 0);
-      glScalef(0.5f, 0.8f, 0.5f);
-      glRotatef(90, 1, 0, 0);
-      glutSolidSphere(0.04f, 10, 10);
-    glPopMatrix();
-
-  glPopMatrix();
-
-  glDisable(GL_COLOR_MATERIAL);
-}
-
-extern void draw_world() {
   glEnable(GL_CULL_FACE);
   glDisable(GL_LIGHTING);
 
@@ -177,6 +90,12 @@ extern void draw_world() {
   glPushMatrix();
     glTranslatef(5.0f, 0.0f, 5.0f);
     draw_cake();
+  glPopMatrix();
+
+  // Draw the companion cube
+  glPushMatrix();
+    glTranslatef(7.0f, 0.0f, -7.0f);
+    draw_companion_cube();
   glPopMatrix();
 
   glDisable(GL_CULL_FACE);

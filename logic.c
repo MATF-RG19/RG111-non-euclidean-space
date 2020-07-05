@@ -13,6 +13,151 @@ static unsigned int portal_allocated = 0;
 unsigned int portal_allocation_size = 5;
 portal **portals;
 
+extern void check_teleportation(double *x, double *y, double *z, double new_x, double new_y, double new_z, double *yaw) {
+  // Check if the player should be teleported
+  for(unsigned int i = 0; i < portal_count; i++) {
+    if(portals[i] == NULL)
+      continue;
+
+    // If the portal is linked and we passed the portal plane
+    float *offset_pos = get_offset_position(portals[i]);
+    if(is_linked(portals[i]) && sidexz3v(offset_pos, portals[i]->normal, *x, *z)*sidexz3v(offset_pos, portals[i]->normal, new_x, new_z) <= 0) {
+
+      float d = det2f(new_x-*x, new_z-*z, -portals[i]->normal[2]*portals[i]->width/2, portals[i]->normal[0]*portals[i]->width/2);
+
+      // Calculate the intersection parameter on the portal
+      float s = det2f(offset_pos[0]-*x, offset_pos[2]-*z, new_x-*x, new_z-*z)/d;
+
+      // Check if the player went through the portal, otherwise continue
+      if(fabs(s) >= 1) {
+        free(offset_pos);
+        continue;
+      }
+
+      // Calculate the intersection parameter on the player move vector
+      float t = det2f(offset_pos[0]-*x, offset_pos[2]-*z, -portals[i]->normal[2]*portals[i]->width/2, portals[i]->normal[0]*portals[i]->width/2)/d;
+
+      // Calculate the yaw change
+      float angle = angle_between2f(-portals[i]->normal[0], -portals[i]->normal[2], portals[i]->link->normal[0], portals[i]->link->normal[2]);
+
+      // Move the player
+      float offset_x = (new_x-*x)*(1.0f-t);
+      float offset_z = (new_z-*z)*(1.0f-t);
+
+      new_x = portals[i]->link->position[0] + portals[i]->link->normal[0]*0.1f + portals[i]->link->normal[2]*portals[i]->link->width/2*s;
+      new_y = portals[i]->link->position[1] - portals[i]->position[1] + *y;
+      new_z = portals[i]->link->position[2] + portals[i]->link->normal[2]*0.1f - portals[i]->link->normal[0]*portals[i]->link->width/2*s;
+
+      new_x += cos(angle)*offset_x - sin(angle)*offset_z;
+      new_z += sin(angle)*offset_x + cos(angle)*offset_z;
+
+      // Update player rotation
+      *yaw = clamp_yaw(*yaw + angle);
+
+      free(offset_pos);
+      break;
+    }
+
+    free(offset_pos);
+  }
+
+  *x = new_x;
+  *y = new_y;
+  *z = new_z;
+}
+
+extern void place_portal(double x, double y, double z, double look_x, double look_y, double look_z, portal_color color) {
+  // Find the closest wall the player is looking at
+  float t = INT_MAX;
+  wall *w = NULL;
+  float dist_horizontal = 0;
+
+  for(unsigned int i = 0; i < wall_count; i++) {
+    // Make sure the player is facing the front side of the wall
+    if(sidexz3v(walls[i]->position, walls[i]->normal, x, z) != 1)
+      continue;
+
+    // If the look vector is parallel to the wall there is no intersection
+    float d = dot_prod3f(look_x, look_y, look_z, walls[i]->normal[0], walls[i]->normal[1], walls[i]->normal[2]);
+    if(d == 0)
+      continue;
+
+    // Calculate the intersection parameter
+    float nt = -(dot_prod3f(x, y, z, walls[i]->normal[0], walls[i]->normal[1], walls[i]->normal[2])+(-walls[i]->normal[0]*walls[i]->position[0]-walls[i]->normal[1]*walls[i]->position[1]-walls[i]->normal[2]*walls[i]->position[2]))/d;
+
+    // We don't care about walls behind the player
+    if(nt<=0)
+      continue;
+
+    // Check if the intersection is inside the wall
+    float dist_h = sqrt((x+look_x*nt-walls[i]->position[0])*(x+look_x*nt-walls[i]->position[0])+(z+look_z*nt-walls[i]->position[2])*(z+look_z*nt-walls[i]->position[2]));
+    float dist_v = y+look_y*nt-walls[i]->position[1];
+
+    if(fabs(dist_h)>walls[i]->width/2 || fabs(dist_v)>walls[i]->height/2)
+      continue;
+
+    // If the current wall is closer use it instead
+    if(nt < t) {
+      t = nt;
+      w = walls[i];
+      dist_horizontal = dist_h;
+    }
+  }
+
+  // Check if there was an intersection point
+  if(t != INT_MAX) {
+    // Clamp position on x and z axes
+    float nx = x+look_x*t;
+    float nz = z+look_z*t;
+    if(fabs(dist_horizontal)>w->width/2-PORTAL_WIDTH/2) {
+      dist_horizontal = clamp(dist_horizontal, -w->width/2+PORTAL_WIDTH/2, w->width/2-PORTAL_WIDTH/2);
+      nx = w->position[0]+sgn(x+look_x*t-w->position[0])*dist_horizontal*w->normal[2];
+      nz = w->position[2]+sgn(z+look_z*t-w->position[2])*dist_horizontal*w->normal[0];
+    }
+
+    // Clamp position on y axis
+    float ny = clamp(y+look_y*t, w->position[1]-w->height/2+PORTAL_HEIGHT/2, w->position[1]+w->height/2-PORTAL_HEIGHT/2);
+
+    // Check if there is another portal at that position
+    bool should_create_portal = true;
+    for(unsigned int i = 0; i < portal_count; i++) {
+      if(portals[i] != NULL && portals[i]->wall == w && sqrt(fabs(nx-portals[i]->position[0])*fabs(nx-portals[i]->position[0])+fabs(nz-portals[i]->position[2])*fabs(nz-portals[i]->position[2]))<portals[i]->width/2+PORTAL_WIDTH/2) {
+        should_create_portal = false;;
+      }
+    }
+
+    if(should_create_portal) {
+      // Create the portal on the closest wall
+      create_user_portal(color, nx, ny, nz, w);
+    }
+  }
+}
+
+extern void check_collisions(double *x, double *y, double *z) {
+  float dist = 0;
+  // Is the player hitting a wall
+  for(unsigned int i = 0; i < wall_count; i++) {
+    if(is_colliding_with_wall(*x, *z, walls[i], &dist)) {
+      // And is there not a portal there
+      bool in_portal = false;
+      for(unsigned int j = 0; j < portal_count; j++) {
+        if(portals[j] == NULL || portals[j]->wall != walls[i])
+          continue;
+
+        if(is_linked(portals[j]) && is_colliding_with_portal(*x, *y, *z, portals[j])) {
+          in_portal = true;
+          break;
+        }
+      }
+      if(!in_portal) {
+        // Move the player back
+        *x = *x + (PLAYER_COLLISION_RADIUS-dist)*walls[i]->normal[0];
+        *z = *z + (PLAYER_COLLISION_RADIUS-dist)*walls[i]->normal[2];
+      }
+    }
+  }
+}
+
 // Wall functions
 void initialize_walls(unsigned int n) {
   walls = calloc(n, sizeof(wall *));
